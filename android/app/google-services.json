@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "553636514825",
+    "project_id": "enduring-tea-306116",
+    "storage_bucket": "enduring-tea-306116.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:553636514825:android:f7eb8d9fa3b57ee448bcd8",
+        "android_client_info": {
+          "package_name": "com.example.diplom"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBvAxi0415kZmRoK1dP0liJKF0iu9eZuow"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
