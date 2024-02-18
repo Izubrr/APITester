@@ -12,6 +12,7 @@ class MyApp extends StatelessWidget {
       title: 'Flutter Authentication',
       debugShowCheckedModeBanner: false,
       home: LoginPage(),
+      theme: ThemeData(useMaterial3: true),
     );
   }
 }

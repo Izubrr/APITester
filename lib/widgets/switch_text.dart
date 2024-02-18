@@ -10,7 +10,6 @@ class SwitchText extends StatefulWidget {
   _SwitchTextState createState() => _SwitchTextState();
 }
 
-
 class _SwitchTextState extends State<SwitchText> {
   bool val = false;
 
@@ -34,45 +33,35 @@ class _SwitchTextState extends State<SwitchText> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Expanded(child: Container(
+              Expanded(
+                child: Container(
                   height: 30,
                   decoration: BoxDecoration(
-                      borderRadius:
-                      BorderRadius.circular(20),
-                      color: val
-                          ? Colors.white
-                          : widget.color),
+                      borderRadius: BorderRadius.circular(20),
+                      color: val ? Colors.white : widget.color),
                   child: Center(
                       child: Text(
-                        'Log in',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: val
-                                ? Colors.black
-                                : Colors.white),
-                      )
-                  ),
+                    'Log in',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: val ? Colors.black : Colors.white),
+                  )),
                 ),
               ),
               const SizedBox(width: 4.0),
-              Expanded(child: Container(
+              Expanded(
+                child: Container(
                   height: 30,
                   decoration: BoxDecoration(
-                      borderRadius:
-                      BorderRadius.circular(20),
-                      color: val
-                          ? widget.color
-                          : Colors.white),
+                      borderRadius: BorderRadius.circular(20),
+                      color: val ? widget.color : Colors.white),
                   child: Center(
                       child: Text(
-                        'Sign up',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: val
-                                ? Colors.white
-                                : Colors.black),
-                      )
-                  ),
+                    'Sign up',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: val ? Colors.white : Colors.black),
+                  )),
                 ),
               )
             ],

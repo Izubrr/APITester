@@ -36,7 +36,6 @@ class _Forgot_WidgetState extends State<Forgot_Widget> {
             );
           });
     } on FirebaseAuthException catch (e) {
-      print(e);
       showDialog(
           context: context,
           builder: (context) {

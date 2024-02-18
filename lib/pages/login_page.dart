@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:diplom/firebase_options.dart';
+import 'package:diplom/pages/profile_page.dart';
+import 'main_navigation_scaffold.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -28,15 +30,15 @@ class _LoginPageState extends State<LoginPage> {
 
     User? user = FirebaseAuth.instance.currentUser;
 
-    /*if (user != null) {
+    if (user != null) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (context) => ProfilePage(
-            user: user,
+          builder: (context) => MainNavigationScaffold(
+            selectedIndex: 0,
           ),
         ),
       );
-    } TODO: Переход в приложение, если пользователь есть  */
+    }
 
     return firebaseApp;
   }
@@ -44,8 +46,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   void initState() {
     super.initState();
-    FirebaseFuture =
-        _initializeFirebase(); // Создание Future один раз при инициализации состояния
+    FirebaseFuture = _initializeFirebase();
   }
 
   SignInState _signInState = SignInState.logIn;
@@ -117,58 +118,56 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                             Text(
                               signTitle,
-                              style:
-                              const TextStyle(color: Colors.white, fontSize: 24),
+                              style: const TextStyle(
+                                  color: Colors.white, fontSize: 24),
                             ),
                           ],
                         )
                       else
-                      Column(
-                        children: [
-                          Text(
-                            signTitle,
-                            style:
-                            const TextStyle(color: Colors.white, fontSize: 24),
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            children: <Widget>[
-                              Expanded(
-                                child: SwitchText(
-                                  color: Colors.blueAccent,
-                                  onTap: () {
-                                    setState(() {
-                                      _signInState =
-                                      _signInState == SignInState.logIn
-                                          ? SignInState.signUp
-                                          : SignInState.logIn;
-                                    });
-                                  },
-                                ),
-                              )
-                            ],
-                          ),
-                        ],
-                      ),
-
+                        Column(
+                          children: [
+                            Text(
+                              signTitle,
+                              style: const TextStyle(
+                                  color: Colors.white, fontSize: 24),
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: <Widget>[
+                                Expanded(
+                                  child: SwitchText(
+                                    color: Colors.blueAccent,
+                                    onTap: () {
+                                      setState(() {
+                                        _signInState =
+                                            _signInState == SignInState.logIn
+                                                ? SignInState.signUp
+                                                : SignInState.logIn;
+                                      });
+                                    },
+                                  ),
+                                )
+                              ],
+                            ),
+                          ],
+                        ),
                       const SizedBox(height: 16),
                       signWidget,
                       const SizedBox(height: 10),
-
-                      if(_signInState != SignInState.resetPassword)
-                      GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _signInState = SignInState.resetPassword;
-                          });
-                        },
-                        child: const Text(
-                          'Forgot Password?',
-                          style: TextStyle(
-                              decoration: TextDecoration.underline,
-                              color: Colors.blueAccent),
-                        ),
-                      )
+                      if (_signInState != SignInState.resetPassword)
+                        TextButton(
+                          onPressed: () {
+                            setState(() {
+                              _signInState = SignInState.resetPassword;
+                            });
+                          },
+                          child: const Text(
+                            'Forgot Password?',
+                            style: TextStyle(
+                                decoration: TextDecoration.underline,
+                                color: Colors.blueAccent),
+                          ),
+                        )
                     ],
                   )),
             ),

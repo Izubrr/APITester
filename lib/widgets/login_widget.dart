@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:diplom/utils/auth.dart';
 import 'package:diplom/utils/validator.dart';
-import 'package:diplom/pages/login_page.dart';
+import 'package:diplom/pages/main_navigation_scaffold.dart';
 
 class Login_Widget extends StatefulWidget {
   const Login_Widget({super.key});
@@ -18,8 +18,6 @@ class _Login_WidgetState extends State<Login_Widget> {
   final _passwordTextController = TextEditingController();
 
   bool _isProcessing = false;
-
-  SignInState _signInState = SignInState.resetPassword;
 
   @override
   Widget build(BuildContext context) {
@@ -117,15 +115,15 @@ class _Login_WidgetState extends State<Login_Widget> {
                         _isProcessing = false;
                       });
 
-                      print('LOGGEDIN');
-                      /*if (user != null) {
-                      Navigator.of(context)
-                      .pushReplacement(
-                      MaterialPageRoute(
-                          builder: (context) =>
-                              ProfilePage(
-                                  user: user)));
-                      } TODO: Переход в приложение, если пользователь есть  */
+                      if (user != null) {
+                        Navigator.of(context).pushReplacement(
+                          MaterialPageRoute(
+                            builder: (context) => MainNavigationScaffold(
+                              selectedIndex: 1,
+                            ),
+                          ),
+                        );
+                      }
                     }
                   },
                   style: ElevatedButton.styleFrom(
@@ -139,38 +137,6 @@ class _Login_WidgetState extends State<Login_Widget> {
                   child: const Text('Log in'),
                 ),
           const SizedBox(height: 12),
-          // Row(
-          //   mainAxisAlignment: MainAxisAlignment.center,
-          //   children: <Widget>[
-          //     IconButton(
-          //       icon: const Icon(Icons.discord),
-          //       onPressed: () {},
-          //       color: Colors.white,
-          //     ),
-          //     IconButton(
-          //       icon: const Icon(Icons.g_mobiledata),
-          //       onPressed: () {},
-          //       color: Colors.white,
-          //       hoverColor: Colors.blueAccent,
-          //     ),
-          //     IconButton(
-          //         icon: const Icon(Icons.facebook),
-          //         onPressed: () {},
-          //         color: Colors.white,
-          //         hoverColor: Colors.blueAccent),
-          //     IconButton(
-          //         icon: const Icon(Icons.window),
-          //         onPressed: () {},
-          //         color: Colors.white,
-          //         hoverColor: Colors.blueAccent),
-          //     IconButton(
-          //       icon: const Icon(Icons.apple),
-          //       onPressed: () {},
-          //       color: Colors.white,
-          //       hoverColor: Colors.blueAccent,
-          //     ),
-          //   ],
-          // ),
         ],
       ),
     );

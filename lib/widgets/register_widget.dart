@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:diplom/utils/auth.dart';
 import 'package:diplom/utils/validator.dart';
+import 'package:diplom/pages/main_navigation_scaffold.dart';
 
 class Register_Widget extends StatefulWidget {
   const Register_Widget({super.key, required this.color});
@@ -171,9 +172,7 @@ class _Register_WidgetState extends State<Register_Widget> {
             ),
           ),
           const SizedBox(height: 16),
-          _isProcessing
-              ? const CircularProgressIndicator()
-              : ElevatedButton(
+          if (_isProcessing) const CircularProgressIndicator() else ElevatedButton(
                   onPressed: () async {
                     if(_registerFormKey.currentState!.validate()){
                       setState(() {
@@ -191,14 +190,15 @@ class _Register_WidgetState extends State<Register_Widget> {
                           _isProcessing = false;
                         });
 
-                        /*if (user != null) {
-                        Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(
-                            builder: (context) => ProfilePage(user: user),
-                          ),
-                          ModalRoute.withName('/'),
-                        );
-                      }TODO: Переход в приложение, если пользователь есть  */
+                        if (user != null) {
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(
+                              builder: (context) => MainNavigationScaffold(
+                                selectedIndex: 0,
+                              ),
+                            ),
+                          );
+                        }
                         print('REGISTERED');
                       }
                     }
