@@ -193,9 +193,7 @@ class _Register_WidgetState extends State<Register_Widget> {
                         if (user != null) {
                           Navigator.of(context).pushReplacement(
                             MaterialPageRoute(
-                              builder: (context) => MainNavigationScaffold(
-                                selectedIndex: 0,
-                              ),
+                              builder: (context) => MainNavigationScaffold(),
                             ),
                           );
                         }

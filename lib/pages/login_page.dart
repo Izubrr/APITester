@@ -33,9 +33,7 @@ class _LoginPageState extends State<LoginPage> {
     if (user != null) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (context) => MainNavigationScaffold(
-            selectedIndex: 0,
-          ),
+          builder: (context) => MainNavigationScaffold(),
         ),
       );
     }

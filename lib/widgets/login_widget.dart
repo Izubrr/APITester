@@ -118,9 +118,7 @@ class _Login_WidgetState extends State<Login_Widget> {
                       if (user != null) {
                         Navigator.of(context).pushReplacement(
                           MaterialPageRoute(
-                            builder: (context) => MainNavigationScaffold(
-                              selectedIndex: 1,
-                            ),
+                            builder: (context) => MainNavigationScaffold(),
                           ),
                         );
                       }

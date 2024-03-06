@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
-import 'pages/login_page.dart';
+import 'package:diplom/pages/main_navigation_scaffold.dart';
+import 'package:diplom/pages/login_page.dart';
+
+final ValueNotifier<Color> mainThemeColorNotifier = ValueNotifier<Color>(Colors.green);
+final ValueNotifier<bool> isDarkThemeNotifier = ValueNotifier(true);
 
 void main() {
   runApp(MyApp());
@@ -8,11 +12,25 @@ void main() {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Authentication',
-      debugShowCheckedModeBanner: false,
-      home: LoginPage(),
-      theme: ThemeData(useMaterial3: true),
+    return ValueListenableBuilder<Color>(
+      valueListenable: mainThemeColorNotifier,
+      builder: (context, currentColor, child) {
+        return ValueListenableBuilder<bool>(
+          valueListenable: isDarkThemeNotifier,
+          builder: (context, isDarkTheme, child) {
+            return MaterialApp(
+              title: 'Flutter Authentication',
+              debugShowCheckedModeBanner: false,
+              home: LoginPage(),
+              theme: ThemeData(
+                useMaterial3: true,
+                brightness: isDarkTheme ? Brightness.dark : Brightness.light,
+                colorSchemeSeed: currentColor,
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:diplom/screens/profile_page.dart';
+import 'package:diplom/pages/profile_page.dart';
 import 'package:diplom/utils/auth.dart';
 import 'package:diplom/utils/validator.dart';
 
