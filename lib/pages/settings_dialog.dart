@@ -38,9 +38,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                     const SizedBox(width: 8), // Отступ между иконкой и текстом
                     Text(
                       'Settings',
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleLarge, // Стиль заголовка согласно текущей теме
+                      style: Theme.of(context).textTheme.titleLarge, // Стиль заголовка согласно текущей теме
                     ),
                   ],
                 ),
@@ -56,6 +54,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                       valueListenable: labelTypeNotifier,
                       builder: (context, value, child) {
                         return DropdownButton<NavigationRailLabelType>(
+                          focusColor: Colors.transparent,
                           padding: const EdgeInsets.all(5),
                           borderRadius: BorderRadius.circular(12.0),
                           value: value,

@@ -19,20 +19,42 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold> with Ti
 
   // Инициализация списка виджетов ProjectPage
   late final List<Widget> _pages = [
-    const ProjectPage(
+    ProjectPage(
       projectName: 'MyApp1',
-      apis: ['API 1', 'API 2'], // Пример данных API
-      testCases: ['Test Case 1', 'Test Case 2'], // Пример данных Test Cases
+      // Создаем объекты Api с endpoint и method
+      apis: [
+        Api(method: 'GET', endpoint: '/api/v1/resource1', status: ApiStatus.done),
+        Api(method: 'POST', endpoint: '/api/v1/resource2', status: ApiStatus.inProgress),
+        Api(method: 'POST', endpoint: '/api/v1/resource3', ),
+        Api(method: 'POST', endpoint: '/api/v1/resource4', ),
+        Api(method: 'POST', endpoint: '/api/v1/resource5', ),
+        Api(method: 'POST', endpoint: '/api/v1/resource6', ),
+        Api(method: 'POST', endpoint: '/api/v1/resource7', ),
+        Api(method: 'POST', endpoint: '/api/v1/resource8', ),
+        Api(method: 'POST', endpoint: '/api/v1/resource9', ),
+        Api(method: 'POST', endpoint: '/api/v1/resource10', ),
+        Api(method: 'POST', endpoint: '/api/v1/resource11', ),
+        Api(method: 'POST', endpoint: '/api/v1/resource12', ),
+        Api(method: 'POST', endpoint: '/api/v1/resource13', ),
+
+      ],
+      testCases: const ['Test Case 1', 'Test Case 2'],
     ),
-    const ProjectPage(
+    ProjectPage(
       projectName: 'MyApp2',
-      apis: ['API 3', 'API 4'], // Пример данных API
-      testCases: ['Test Case 3', 'Test Case 4'], // Пример данных Test Cases
+      apis: [
+        Api(method: 'PUT', endpoint: '/api/v2/resource3', ),
+        Api(method: 'DELETE', endpoint: '/api/v2/resource4', ),
+      ],
+      testCases: const ['Test Case 3', 'Test Case 4'],
     ),
-    const ProjectPage(
+    ProjectPage(
       projectName: 'MyApp3',
-      apis: ['API 5', 'API 6'], // Пример данных API
-      testCases: ['Test Case 5', 'Test Case 6'], // Пример данных Test Cases
+      apis: [
+        Api(method: 'GET', endpoint: '/api/v3/resource5', ),
+        Api(method: 'POST', endpoint: '/api/v3/resource6', ),
+      ],
+      testCases: const ['Test Case 5', 'Test Case 6'],
     ),
   ];
 
