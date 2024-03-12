@@ -151,7 +151,7 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       const SizedBox(height: 16),
                       signWidget,
-                      const SizedBox(height: 10),
+                      //const SizedBox(height: 10),
                       if (_signInState != SignInState.resetPassword)
                         TextButton(
                           onPressed: () {

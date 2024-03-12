@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'project_page.dart';
-import 'settings_dialog.dart';
+import '../widgets/settings_dialog.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
 ValueNotifier<NavigationRailLabelType> labelTypeNotifier =
@@ -23,19 +23,19 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold> with Ti
       projectName: 'MyApp1',
       // Создаем объекты Api с endpoint и method
       apis: [
-        Api(method: 'GET', endpoint: '/api/v1/resource1', status: ApiStatus.done),
-        Api(method: 'POST', endpoint: '/api/v1/resource2', status: ApiStatus.inProgress),
-        Api(method: 'POST', endpoint: '/api/v1/resource3', ),
-        Api(method: 'POST', endpoint: '/api/v1/resource4', ),
-        Api(method: 'POST', endpoint: '/api/v1/resource5', ),
-        Api(method: 'POST', endpoint: '/api/v1/resource6', ),
-        Api(method: 'POST', endpoint: '/api/v1/resource7', ),
-        Api(method: 'POST', endpoint: '/api/v1/resource8', ),
-        Api(method: 'POST', endpoint: '/api/v1/resource9', ),
-        Api(method: 'POST', endpoint: '/api/v1/resource10', ),
-        Api(method: 'POST', endpoint: '/api/v1/resource11', ),
-        Api(method: 'POST', endpoint: '/api/v1/resource12', ),
-        Api(method: 'POST', endpoint: '/api/v1/resource13', ),
+        Api(method: ApiMethod.GET, endpoint: '/api/v1/resource1', status: ApiStatus.done),
+        Api(method: ApiMethod.POST, endpoint: '/api/v1/resource2', status: ApiStatus.inProgress),
+        Api(method: ApiMethod.POST, endpoint: '/api/v1/resource3', ),
+        Api(method: ApiMethod.POST, endpoint: '/api/v1/resource4', ),
+        Api(method: ApiMethod.POST, endpoint: '/api/v1/resource5', ),
+        Api(method: ApiMethod.POST, endpoint: '/api/v1/resource6', ),
+        Api(method: ApiMethod.PUT, endpoint: '/api/v1/resource7', ),
+        Api(method: ApiMethod.PUT, endpoint: '/api/v1/resource8', ),
+        Api(method: ApiMethod.POST, endpoint: '/api/v1/resource9', ),
+        Api(method: ApiMethod.POST, endpoint: '/api/v1/resource10', ),
+        Api(method: ApiMethod.DELETE, endpoint: '/api/v1/resource11', ),
+        Api(method: ApiMethod.DELETE, endpoint: '/api/v1/resource12', ),
+        Api(method: ApiMethod.DELETE, endpoint: '/api/v1/resource13', ),
 
       ],
       testCases: const ['Test Case 1', 'Test Case 2'],
@@ -43,16 +43,16 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold> with Ti
     ProjectPage(
       projectName: 'MyApp2',
       apis: [
-        Api(method: 'PUT', endpoint: '/api/v2/resource3', ),
-        Api(method: 'DELETE', endpoint: '/api/v2/resource4', ),
+        Api(method: ApiMethod.PUT, endpoint: '/api/v2/resource3', ),
+        Api(method: ApiMethod.DELETE, endpoint: '/api/v2/resource4', ),
       ],
       testCases: const ['Test Case 3', 'Test Case 4'],
     ),
     ProjectPage(
       projectName: 'MyApp3',
       apis: [
-        Api(method: 'GET', endpoint: '/api/v3/resource5', ),
-        Api(method: 'POST', endpoint: '/api/v3/resource6', ),
+        Api(method: ApiMethod.GET, endpoint: '/api/v3/resource5', ),
+        Api(method: ApiMethod.POST, endpoint: '/api/v3/resource6', ),
       ],
       testCases: const ['Test Case 5', 'Test Case 6'],
     ),

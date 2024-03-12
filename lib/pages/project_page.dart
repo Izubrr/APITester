@@ -1,14 +1,24 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
+import 'package:diplom/widgets/addapi_dialog.dart';
 
 // Определение перечисления ApiStatus
 enum ApiStatus {
-  notDone,
-  done,
   inProgress,
+  done,
+  notDone,
+}
+
+enum ApiMethod {
+  GET,
+  POST,
+  PUT,
+  DELETE,
 }
 
 class Api {
-  final String method;
+  final ApiMethod method;
   final String endpoint;
   ApiStatus status;
 
@@ -82,11 +92,12 @@ class _ApiDetailPageState extends State<ApiDetailPage> {
                   Container(
                     decoration: BoxDecoration(
                         color: getStatusColor(),
-                        borderRadius: const BorderRadius.all(Radius.circular(12))),
+                        borderRadius:
+                            const BorderRadius.all(Radius.circular(12))),
                     child: DropdownButton<ApiStatus>(
                       focusColor: Colors.transparent,
                       isDense: true,
-                      underline: Text(''),
+                      underline: const Text(''),
                       padding: const EdgeInsets.all(5),
                       borderRadius: BorderRadius.circular(12.0),
                       value: widget.api.status,
@@ -153,12 +164,54 @@ class ProjectPage extends StatefulWidget {
   _ProjectPageState createState() => _ProjectPageState();
 }
 
+enum FilterOption {
+  getByMethodGET,
+  getByMethodPOST,
+  getByMethodPUT,
+  getByMethodDELETE,
+  orderByEndpoint,
+  orderByStatus,
+}
+
 class _ProjectPageState extends State<ProjectPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   int selectedApiIndex = -1;
   int selectedTestCaseIndex = -1;
+
+  final ValueNotifier<FilterOption?> currentFilter = ValueNotifier(null);
+
+  int naturalSortComparator(String a, String b) {
+    final RegExp regExp = RegExp(r'(\d+)|(\D+)');
+    final Iterable<RegExpMatch> matchesA = regExp.allMatches(a);
+    final Iterable<RegExpMatch> matchesB = regExp.allMatches(b);
+
+    final List<String> partsA = matchesA.map((m) => m.group(0)!).toList();
+    final List<String> partsB = matchesB.map((m) => m.group(0)!).toList();
+
+    for (int i = 0; i < min(partsA.length, partsB.length); i++) {
+      final String partA = partsA[i];
+      final String partB = partsB[i];
+
+      if (partA == partB) continue;
+
+      final num? numA = int.tryParse(partA);
+      final num? numB = int.tryParse(partB);
+
+      if (numA != null && numB != null) {
+        return numA.compareTo(numB);
+      }
+      return partA.compareTo(partB);
+    }
+    return partsA.length.compareTo(partsB.length);
+  }
+
+  void sortApisByEndpoint(List<Api> apis) {
+    apis.sort((a, b) => naturalSortComparator(a.endpoint, b.endpoint));
+  }
+
+  bool _isListVisible = true;
 
   @override
   void initState() {
@@ -188,66 +241,158 @@ class _ProjectPageState extends State<ProjectPage>
       body: TabBarView(
         controller: _tabController,
         children: [
-          Row(
-            children: [
-              Expanded(
-                flex: 1,
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(8, 8, 0, 0),
-                            child: ElevatedButton(
-                              onPressed: () {
-                                // Здесь должна быть ваша логика для добавления API
-                              },
-                              child: const Text('Add API'),
+            Row(
+              children: [
+                if (_isListVisible)
+                Expanded(
+                  flex: 1,
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(8, 8, 0, 0),
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (BuildContext context) {
+                                      return AddApiDialog();
+                                    },
+                                  );
+                                },
+                                child: const Text('Add API'),
+                              ),
                             ),
                           ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-                          child: IconButton(
-                            icon: const Icon(Icons.menu),
-                            onPressed: () {
-                              // Здесь должна быть ваша логика для добавления чего-либо ещё
-                            },
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+                            child: PopupMenuButton<FilterOption>(
+                              icon: const Icon(Icons.filter_list),
+                              onSelected: (FilterOption result) {
+                                currentFilter.value = result;
+                              },
+                              itemBuilder: (BuildContext context) =>
+                                  <PopupMenuEntry<FilterOption>>[
+                                const PopupMenuItem<FilterOption>(
+                                  value: FilterOption.getByMethodGET,
+                                  child: Text('GET'),
+                                ),
+                                const PopupMenuItem<FilterOption>(
+                                  value: FilterOption.getByMethodPOST,
+                                  child: Text('POST'),
+                                ),
+                                const PopupMenuItem<FilterOption>(
+                                  value: FilterOption.getByMethodPUT,
+                                  child: Text('PUT'),
+                                ),
+                                const PopupMenuItem<FilterOption>(
+                                  value: FilterOption.getByMethodDELETE,
+                                  child: Text('DELETE'),
+                                ),
+                                const PopupMenuItem<FilterOption>(
+                                  value: FilterOption.orderByEndpoint,
+                                  child: Text('Endpoint'),
+                                ),
+                                const PopupMenuItem<FilterOption>(
+                                  value: FilterOption.orderByStatus,
+                                  child: Text('Status'),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const Divider(),
-                    Expanded(
-                      child: ListView.builder(
-                        itemCount: widget.apis.length,
-                        itemBuilder: (context, index) {
-                          Api api = widget.apis[index];
-                          return ListTile(
-                            trailing: api.status == ApiStatus.done ? const Icon(Icons.check) : api.status == ApiStatus.notDone ? const Icon(Icons.not_interested) : null,
-                            title: Text('${api.method} ${api.endpoint}'),
-                            onTap: () => setState(() {
-                              selectedApiIndex = index;
-                            }),
-                          );
-                        },
+                        ],
                       ),
-                    ),
-                  ],
+                      const Divider(),
+                      Expanded(
+                        child: ValueListenableBuilder<FilterOption?>(
+                          valueListenable: currentFilter,
+                          builder: (context, value, child) {
+                            List<Api> filteredApis = widget.apis;
+                            switch (value) {
+                              case FilterOption.getByMethodGET:
+                                filteredApis = filteredApis
+                                    .where((api) =>
+                                        api.method.name.toString() == "GET")
+                                    .toList();
+                                break;
+                              case FilterOption.getByMethodPOST:
+                                filteredApis = filteredApis
+                                    .where((api) =>
+                                        api.method.name.toString() == "POST")
+                                    .toList();
+                                break;
+                              case FilterOption.getByMethodPUT:
+                                filteredApis = filteredApis
+                                    .where((api) =>
+                                        api.method.name.toString() == "PUT")
+                                    .toList();
+                                break;
+                              case FilterOption.getByMethodDELETE:
+                                filteredApis = filteredApis
+                                    .where((api) =>
+                                        api.method.name.toString() == "DELETE")
+                                    .toList();
+                                break;
+                              case FilterOption.orderByEndpoint:
+                                sortApisByEndpoint(filteredApis);
+                                break;
+                              case FilterOption.orderByStatus:
+                                filteredApis.sort((a, b) =>
+                                    a.status.index.compareTo(b.status.index));
+                                break;
+                              default:
+                                break;
+                            }
+
+                            // Возвращаем отфильтрованный и отсортированный список
+                            return ListView.builder(
+                              itemCount: filteredApis.length,
+                              itemBuilder: (context, index) {
+                                Api api = filteredApis[index];
+                                return ListTile(
+                                  trailing: api.status == ApiStatus.done
+                                      ? const Icon(Icons.check)
+                                      : api.status == ApiStatus.notDone
+                                          ? const Icon(Icons.not_interested)
+                                          : null,
+                                  title: Text(
+                                      '${api.method.name} ${api.endpoint}'),
+                                  onTap: () => setState(() {
+                                    selectedApiIndex = index;
+                                  }),
+                                );
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const VerticalDivider(width: 1),
-              Expanded(
-                flex: 5,
-                child: selectedApiIndex == -1
-                    ? const Center(
-                        child:
-                            Text('Select an object from list to view details'))
-                    : ApiDetailPage(api: widget.apis[selectedApiIndex]),
-              ),
-            ],
-          ),
+                const VerticalDivider(width: 1),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: IconButton(
+                    icon: Icon(_isListVisible ? Icons.arrow_back_ios_new : Icons.arrow_forward_ios_outlined),
+                    onPressed: () {
+                      setState(() {
+                        _isListVisible = !_isListVisible;
+                      });
+                    },
+                  ),
+                ),
+                Expanded(
+                  flex: 5,
+                  child: selectedApiIndex == -1
+                      ? const Center(
+                          child: Text(
+                              'Select an object from list to view details'))
+                      : ApiDetailPage(api: widget.apis[selectedApiIndex]),
+                ),
+              ],
+            ),
           Row(
             children: [
               Expanded(

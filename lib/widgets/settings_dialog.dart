@@ -2,7 +2,7 @@ import 'package:diplom/pages/login_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:diplom/main.dart';
-import 'main_navigation_scaffold.dart';
+import '../pages/main_navigation_scaffold.dart';
 
 class SettingsDialog extends StatefulWidget {
   @override
@@ -18,7 +18,6 @@ class _SettingsDialogState extends State<SettingsDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
       child: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(12.0),
@@ -56,7 +55,6 @@ class _SettingsDialogState extends State<SettingsDialog> {
                         return DropdownButton<NavigationRailLabelType>(
                           focusColor: Colors.transparent,
                           padding: const EdgeInsets.all(5),
-                          borderRadius: BorderRadius.circular(12.0),
                           value: value,
                           onChanged: (NavigationRailLabelType? newValue) {
                             if (newValue != null) {
