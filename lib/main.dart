@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:diplom/pages/main_navigation_scaffold.dart';
 import 'package:diplom/pages/login_page.dart';
 
 final ValueNotifier<Color> mainThemeColorNotifier = ValueNotifier<Color>(Colors.green);

@@ -371,7 +371,7 @@ class _ProjectPageState extends State<ProjectPage>
                     ],
                   ),
                 ),
-                const VerticalDivider(width: 1),
+                if (_isListVisible) const VerticalDivider(width: 1),
                 Align(
                   alignment: Alignment.centerLeft,
                   child: IconButton(

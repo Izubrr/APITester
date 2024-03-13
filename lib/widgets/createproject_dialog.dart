@@ -1,48 +1,68 @@
 import 'package:flutter/material.dart';
 import 'package:diplom/pages/project_page.dart';
 
-class AddApiDialog extends StatefulWidget {
+class CreateProjectDialog extends StatefulWidget {
   @override
-  _AddApiDialogState createState() => _AddApiDialogState();
+  _CreateProjectDialogState createState() => _CreateProjectDialogState();
 }
 
-class _AddApiDialogState extends State<AddApiDialog> {
-  ApiMethod apiMethod = ApiMethod.GET;
+enum IconLabel {
+  chart('Chart', Icons.add_chart),
+  api('API', Icons.api,),
+  update('Update', Icons.browser_updated_sharp),
+  bug('Bug', Icons.bug_report),
+  bank('Bank', Icons.account_balance),
+  newLabel('Label', Icons.new_label),
+  person('Person', Icons.person),
+  hourGlass('Hourglass', Icons.hourglass_bottom),
+  widgets('Widgets', Icons.widgets);
+
+  const IconLabel(this.label, this.icon);
+  final String label;
+  final IconData icon;
+}
+
+class _CreateProjectDialogState extends State<CreateProjectDialog> {
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      title: const Text('Create or import Project'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Row(
+          Row(
             children: [
-              DropdownMenu<ApiMethod>(
+              DropdownMenu<IconLabel>(
                 width: 100,
-                hintText: 'Method',
-                requestFocusOnTap: false,
-                inputDecorationTheme: InputDecorationTheme(
-                  //filled: true,
+                hintText: 'Icon',
+                inputDecorationTheme: const InputDecorationTheme(
                   contentPadding: EdgeInsets.symmetric(vertical: 5.0),
                 ),
-                dropdownMenuEntries: [
-                  DropdownMenuEntry(value: ApiMethod.GET, label: 'GET'),
-                  DropdownMenuEntry(value: ApiMethod.POST, label: 'POST'),
-                  DropdownMenuEntry(value: ApiMethod.PUT, label: 'PUT'),
-                  DropdownMenuEntry(value: ApiMethod.DELETE, label: 'DELETE'),
-                ],
+                dropdownMenuEntries:
+                IconLabel.values.map<DropdownMenuEntry<IconLabel>>(
+                      (IconLabel icon) {
+                    return DropdownMenuEntry<IconLabel>(
+                      value: icon,
+                      label: icon.label,
+                      leadingIcon: Icon(icon.icon),
+                    );
+                  },
+                ).toList(),
               ),
-              Expanded(
-                child: TextField(
-                  decoration: InputDecoration(
-                    hintText: 'Endpoint',
+              const Expanded(
+                child: SizedBox(
+                  width: 80,
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Project Name',
+                    ),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 18),
-          const Text('You can also import api request', textAlign: TextAlign.right,),
-          const SizedBox(height: 5),
+          const SizedBox(height: 32),
           SizedBox(
             height: 100,
             child: ElevatedButton(
@@ -56,12 +76,12 @@ class _AddApiDialogState extends State<AddApiDialog> {
               ),
               onPressed: () {
                 // Здесь может быть ваша логика для импорта API запроса
-                print('Import API Request');
+                print('Import project');
               },
               child: const Row(
                 children: [
                   Icon(Icons.save_alt),
-                  Text(' Import file'),
+                  Text(' Import from file'),
                 ],
               ),
             ),
@@ -72,7 +92,13 @@ class _AddApiDialogState extends State<AddApiDialog> {
         TextButton(onPressed: () {
           Navigator.of(context).pop();
         }, child: const Text('Cancel')),
-        FilledButton.icon(onPressed: () {}, icon: const Icon(Icons.check_circle_outline), label: const Text(' Save an API')),
+        FilledButton.icon(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            icon: const Icon(Icons.create_new_folder_outlined),
+            label: const Text(' Create a project')
+        ),
       ],
     );
   }

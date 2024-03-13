@@ -1,5 +1,40 @@
+import 'package:diplom/utils/parse_yaml.dart';
 import 'package:flutter/material.dart';
 import 'package:diplom/pages/project_page.dart';
+import 'dart:html' as html;
+
+void pickFile() {
+  // Создание input элемента
+  html.FileUploadInputElement uploadInput = html.FileUploadInputElement();
+  uploadInput.accept = '.yaml,.yml'; // Разрешить только файлы YAML
+  uploadInput.click();
+
+  // Прослушивание изменений
+  uploadInput.onChange.listen((e) {
+    // Получение выбранного файла
+    final files = uploadInput.files;
+    if (files != null && files.isNotEmpty) {
+      final file = files.first;
+
+      // Чтение файла
+      final reader = html.FileReader();
+      reader.readAsText(file);
+      reader.onLoadEnd.listen((e) {
+        // Доступ к содержимому файла
+        _handleYamlContents(reader.result as String);
+      });
+    }
+  });
+}
+
+void _handleYamlContents(String fileContents) {
+  ParseYaml parseYaml = ParseYaml(fileContents);
+
+  print('OpenAPI version: ${parseYaml.openapi}');
+  print('Title: ${parseYaml.title}');
+  print('Version: ${parseYaml.version}');
+  print('Description: ${parseYaml.description}');
+}
 
 class AddApiDialog extends StatefulWidget {
   @override
@@ -32,9 +67,12 @@ class _AddApiDialogState extends State<AddApiDialog> {
                 ],
               ),
               Expanded(
-                child: TextField(
-                  decoration: InputDecoration(
-                    hintText: 'Endpoint',
+                child: SizedBox(
+                  width: 80,
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Endpoint',
+                    ),
                   ),
                 ),
               ),
@@ -54,14 +92,11 @@ class _AddApiDialogState extends State<AddApiDialog> {
                   ),
                 ),
               ),
-              onPressed: () {
-                // Здесь может быть ваша логика для импорта API запроса
-                print('Import API Request');
-              },
+              onPressed: pickFile,
               child: const Row(
                 children: [
                   Icon(Icons.save_alt),
-                  Text(' Import file'),
+                  Text(' Import from file'),
                 ],
               ),
             ),
@@ -72,7 +107,13 @@ class _AddApiDialogState extends State<AddApiDialog> {
         TextButton(onPressed: () {
           Navigator.of(context).pop();
         }, child: const Text('Cancel')),
-        FilledButton.icon(onPressed: () {}, icon: const Icon(Icons.check_circle_outline), label: const Text(' Save an API')),
+        FilledButton.icon(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            icon: const Icon(Icons.check_circle_outline),
+            label: const Text(' Save an API')
+        ),
       ],
     );
   }

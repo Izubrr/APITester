@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'project_page.dart';
 import '../widgets/settings_dialog.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import '../widgets/createproject_dialog.dart';
 
 ValueNotifier<NavigationRailLabelType> labelTypeNotifier =
     ValueNotifier(NavigationRailLabelType.all);
@@ -81,7 +82,12 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold> with Ti
                   padding: const EdgeInsets.all(8.0),
                   child: FloatingActionButton(
                     onPressed: () {
-                      // Add your onPressed code here!
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return CreateProjectDialog();
+                        },
+                      );
                     },
                     child: const Icon(Icons.add),
                   ),
