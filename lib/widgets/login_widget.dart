@@ -111,10 +111,6 @@ class _Login_WidgetState extends State<Login_Widget> {
                         password: _passwordTextController.text,
                       );
 
-                      setState(() {
-                        _isProcessing = false;
-                      });
-
                       if (user != null) {
                         Navigator.of(context).pushReplacement(
                           MaterialPageRoute(
@@ -122,6 +118,9 @@ class _Login_WidgetState extends State<Login_Widget> {
                           ),
                         );
                       }
+                      setState(() {
+                        _isProcessing = false;
+                      });
                     }
                   },
                   style: ElevatedButton.styleFrom(

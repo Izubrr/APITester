@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:diplom/main.dart';
 import 'package:flutter/material.dart';
 import 'package:diplom/widgets/addapi_dialog.dart';
 
@@ -10,24 +12,82 @@ enum ApiStatus {
   notDone,
 }
 
-enum ApiMethod {
+enum ApiMethodType {
   GET,
   POST,
   PUT,
   DELETE,
+  OPTIONS,
+  PATCH,
+  HEAD,
 }
 
 class Api {
-  final ApiMethod method;
+  final ApiMethodType method;
   final String endpoint;
+   List<String> tags;
   ApiStatus status;
+   String summary;
+   Map<String, dynamic> requestBody;
+   Map<String, dynamic> responses;
 
   Api({
     required this.method,
     required this.endpoint,
-    ApiStatus? status,
-  }) : status = status ?? ApiStatus.notDone; // Установка значения по умолчанию
+     this.tags = const ['', ''],
+    this.status = ApiStatus.notDone,
+     this.summary = '',
+     this.requestBody = const {
+       '1': "Tom",
+       '2': "Bob",
+       '3': "Sam"
+     },
+     this.responses = const {
+  '1': "Tom",
+  '2': "Bob",
+  '3': "Sam"
+  },
+  });
 }
+
+Future<List<Api>> buildApiListFromSnapshot(DocumentSnapshot documentSnapshot) async {
+  List<Api> _apiList = [];
+
+  Map<String, dynamic> paths = documentSnapshot.get('paths') as Map<String, dynamic>;
+
+  paths.forEach((endPoint, endPointData) {
+    Map<String, dynamic> methodsData = endPointData as Map<String, dynamic>;
+
+    methodsData.forEach((method, methodData) {
+      methodData as Map<String, dynamic>;
+
+      ApiMethodType apiMethodType;
+      try {
+        apiMethodType = ApiMethodType.values.firstWhere((e) => e.toString().split('.').last == method.toUpperCase());
+      } catch (e) {
+        print("Unknown API method type encountered: $method");
+        return; // Пропускаем неизвестные типы методов
+      }
+
+      List<String> tags = List<String>.from(methodData['tags'] ?? []);
+      String summary = methodData['summary'] ?? '';
+      Map<String, dynamic> requestBody = Map<String, dynamic>.from(methodData['requestBody'] ?? {});
+      Map<String, dynamic> responses = Map<String, dynamic>.from(methodData['responses'] ?? {});
+
+      _apiList.add(Api(
+        method: apiMethodType,
+        endpoint: endPoint,
+        tags: tags,
+        summary: summary,
+        requestBody: requestBody,
+        responses: responses,
+      ));
+    });
+  });
+
+  return _apiList;
+}
+
 
 // Страница деталей для API
 class ApiDetailPage extends StatefulWidget {
@@ -62,6 +122,13 @@ class _ApiDetailPageState extends State<ApiDetailPage> {
   }
 
   @override
+  Future<void> initState() async {
+    super.initState();
+    DocumentSnapshot documentSnapshot = await fireStore.collection('users').doc('${currentUser?.uid}/parsedYaml/$currentProject').get();
+    buildApiListFromSnapshot(documentSnapshot);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(8.0),
@@ -73,7 +140,7 @@ class _ApiDetailPageState extends State<ApiDetailPage> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('${widget.api.method}  ',
+                  Text('${widget.api.method.name}  ',
                       style: Theme.of(context).textTheme.titleLarge),
                   Text(widget.api.endpoint,
                       style: Theme.of(context).textTheme.labelLarge),
@@ -109,7 +176,7 @@ class _ApiDetailPageState extends State<ApiDetailPage> {
                       items: const [
                         DropdownMenuItem(
                           value: ApiStatus.notDone,
-                          child: Text('Not Done'),
+                          child: Text('ToDo'),
                         ),
                         DropdownMenuItem(
                           value: ApiStatus.inProgress,

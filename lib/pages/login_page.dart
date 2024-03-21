@@ -3,11 +3,10 @@ import 'package:diplom/widgets/register_widget.dart';
 import 'package:diplom/widgets/login_widget.dart';
 import 'package:diplom/widgets/forgot_widget.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:diplom/firebase_options.dart';
-import 'package:diplom/pages/profile_page.dart';
 import 'main_navigation_scaffold.dart';
+import 'package:diplom/main.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -28,9 +27,8 @@ class _LoginPageState extends State<LoginPage> {
       options: DefaultFirebaseOptions.currentPlatform,
     );
 
-    User? user = FirebaseAuth.instance.currentUser;
 
-    if (user != null) {
+    if (currentUser != null) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (context) => MainNavigationScaffold(),

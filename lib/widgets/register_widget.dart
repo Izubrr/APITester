@@ -1,8 +1,10 @@
-import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:diplom/utils/auth.dart';
-import 'package:diplom/utils/validator.dart';
+import 'package:diplom/main.dart';
 import 'package:diplom/pages/main_navigation_scaffold.dart';
+import 'package:diplom/utils/auth.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:diplom/utils/validator.dart';
+import 'package:flutter/services.dart';
 
 class Register_Widget extends StatefulWidget {
   const Register_Widget({super.key, required this.color});
@@ -139,9 +141,7 @@ class _Register_WidgetState extends State<Register_Widget> {
             controller: _passwordConfirmTextController,
             obscureText: true,
             validator: (value) => Validator.validatePassword2(
-              password: value,
-              password2: _passwordTextController.text
-            ),
+                password: value, password2: _passwordTextController.text),
             style: const TextStyle(
               color: Colors.white, // Цвет текста
             ),
@@ -172,78 +172,46 @@ class _Register_WidgetState extends State<Register_Widget> {
             ),
           ),
           const SizedBox(height: 16),
-          if (_isProcessing) const CircularProgressIndicator() else ElevatedButton(
-                  onPressed: () async {
-                    if(_registerFormKey.currentState!.validate()){
-                      setState(() {
-                        _isProcessing = true;
-                      });
+          if (_isProcessing)
+            const CircularProgressIndicator()
+          else
+            ElevatedButton(
+              onPressed: () async {
+                if (_registerFormKey.currentState!.validate()) {
+                  setState(() {
+                    _isProcessing = true;
+                  });
 
-                      if (_registerFormKey.currentState!.validate()) {
-                        User? user = await Auth.registerUsingEmailPassword(
-                          name: _nameTextController.text,
-                          email: _emailTextController.text,
-                          password: _passwordTextController.text,
-                        );
+                  if (_registerFormKey.currentState!.validate()) {
+                    currentUser = await Auth.registerUsingEmailPassword(
+                      name: _nameTextController.text,
+                      email: _emailTextController.text,
+                      password: _passwordTextController.text,
+                    );
 
-                        setState(() {
-                          _isProcessing = false;
-                        });
+                    setState(() {
+                      _isProcessing = false;
+                    });
 
-                        if (user != null) {
-                          Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(
-                              builder: (context) => MainNavigationScaffold(),
-                            ),
-                          );
-                        }
-                        print('REGISTERED');
-                      }
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueAccent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    minimumSize: const Size(
-                        double.infinity, 36), // Ширина во весь контейнер
-                  ),
-                  child: const Text('Sign up'),
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(
+                        builder: (context) => MainNavigationScaffold(),
+                      ),
+                    );
+                    print('REGISTERED');
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blueAccent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
                 ),
-          const SizedBox(height: 12),
-          // Row(
-          //   mainAxisAlignment: MainAxisAlignment.center,
-          //   children: <Widget>[
-          //     IconButton(
-          //       icon: const Icon(Icons.discord),
-          //       onPressed: () {},
-          //       color: Colors.white,
-          //     ),
-          //     IconButton(
-          //       icon: const Icon(Icons.g_mobiledata),
-          //       onPressed: () {},
-          //       color: Colors.white,
-          //       hoverColor: Colors.blueAccent,
-          //     ),
-          //     IconButton(
-          //         icon: const Icon(Icons.facebook),
-          //         onPressed: () {},
-          //         color: Colors.white,
-          //         hoverColor: Colors.blueAccent),
-          //     IconButton(
-          //         icon: const Icon(Icons.window),
-          //         onPressed: () {},
-          //         color: Colors.white,
-          //         hoverColor: Colors.blueAccent),
-          //     IconButton(
-          //       icon: const Icon(Icons.apple),
-          //       onPressed: () {},
-          //       color: Colors.white,
-          //       hoverColor: Colors.blueAccent,
-          //     ),
-          //   ],
-          // ),
+                minimumSize:
+                    const Size(double.infinity, 36), // Ширина во весь контейнер
+              ),
+              child: const Text('Sign up'),
+            ),
         ],
       ),
     );

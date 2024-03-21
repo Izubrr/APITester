@@ -9,11 +9,12 @@ class ParseYaml {
   }
 
   // Доступ к элементам документа
-  String get openapi => _yamlMap['openapi'].toString();
+  String get projectTitle => _yamlMap['info']['title'].toString(); // Название проекта
 
-  String get title => _yamlMap['info']['title'].toString();
+  get endPointsList => getPathsKeys();
 
-  String get version => _yamlMap['info']['version'].toString();
-
-  String get description => _yamlMap['info']['description'].toString();
+  List<String> getPathsKeys() {
+    var paths = _yamlMap['paths'] as Map?;
+    return paths?.keys.cast<String>().toList() ?? [];
+  }
 }

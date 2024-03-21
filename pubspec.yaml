@@ -41,6 +41,7 @@ dependencies:
   firebase_storage: ^11.6.0
   cloud_firestore: ^4.14.0
   yaml: ^3.1.0
+  freezed: ^2.4.7
 
 dev_dependencies:
   flutter_test:

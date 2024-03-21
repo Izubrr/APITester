@@ -1,4 +1,19 @@
+import 'package:diplom/main.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+
+final ScaffoldMessengerState? scaffoldMessengerState = scaffoldKey.currentState;
+
+String getStringAfterFirstSpace(String input) {
+  // Находим индекс первого пробела в строке
+  int spaceIndex = input.indexOf(' ');
+  // Если пробел найден, возвращаем подстроку, начиная с символа после пробела
+  if (spaceIndex != -1) {
+    return input.substring(spaceIndex + 1);
+  }
+  // Если пробел не найден, возвращаем исходную строку
+  return input;
+}
 
 class Auth {
   // For registering a new user
@@ -21,13 +36,7 @@ class Auth {
       await user.reload();
       user = auth.currentUser;
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'weak-password') {
-        print('The password provided is too weak.');
-      } else if (e.code == 'email-already-in-use') {
-        print('The account already exists for that email.');
-      }
-    } catch (e) {
-      print(e);
+      scaffoldMessengerState?.showSnackBar(SnackBar(content: Text(getStringAfterFirstSpace(e.toString()))));
     }
 
     return user;
@@ -48,11 +57,7 @@ class Auth {
       );
       user = userCredential.user;
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'user-not-found') {
-        print('No user found for that email.');
-      } else if (e.code == 'wrong-password') {
-        print('Wrong password provided.');
-      }
+      scaffoldMessengerState?.showSnackBar(SnackBar(content: Text(getStringAfterFirstSpace(e.toString()))));
     }
 
     return user;

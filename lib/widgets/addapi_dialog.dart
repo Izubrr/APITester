@@ -30,10 +30,8 @@ void pickFile() {
 void _handleYamlContents(String fileContents) {
   ParseYaml parseYaml = ParseYaml(fileContents);
 
-  print('OpenAPI version: ${parseYaml.openapi}');
-  print('Title: ${parseYaml.title}');
-  print('Version: ${parseYaml.version}');
-  print('Description: ${parseYaml.description}');
+  print('Project Title: ${parseYaml.projectTitle}');
+  print('End Points: ${parseYaml.endPointsList}');
 }
 
 class AddApiDialog extends StatefulWidget {
@@ -42,7 +40,7 @@ class AddApiDialog extends StatefulWidget {
 }
 
 class _AddApiDialogState extends State<AddApiDialog> {
-  ApiMethod apiMethod = ApiMethod.GET;
+  ApiMethodType apiMethod = ApiMethodType.GET;
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
@@ -51,7 +49,7 @@ class _AddApiDialogState extends State<AddApiDialog> {
         children: [
           const Row(
             children: [
-              DropdownMenu<ApiMethod>(
+              DropdownMenu<ApiMethodType>(
                 width: 100,
                 hintText: 'Method',
                 requestFocusOnTap: false,
@@ -60,10 +58,13 @@ class _AddApiDialogState extends State<AddApiDialog> {
                   contentPadding: EdgeInsets.symmetric(vertical: 5.0),
                 ),
                 dropdownMenuEntries: [
-                  DropdownMenuEntry(value: ApiMethod.GET, label: 'GET'),
-                  DropdownMenuEntry(value: ApiMethod.POST, label: 'POST'),
-                  DropdownMenuEntry(value: ApiMethod.PUT, label: 'PUT'),
-                  DropdownMenuEntry(value: ApiMethod.DELETE, label: 'DELETE'),
+                  DropdownMenuEntry(value: ApiMethodType.GET, label: 'GET'),
+                  DropdownMenuEntry(value: ApiMethodType.POST, label: 'POST'),
+                  DropdownMenuEntry(value: ApiMethodType.PUT, label: 'PUT'),
+                  DropdownMenuEntry(value: ApiMethodType.DELETE, label: 'DELETE'),
+                  DropdownMenuEntry(value: ApiMethodType.PATCH, label: 'PATCH'),
+                  DropdownMenuEntry(value: ApiMethodType.HEAD, label: 'HEAD'),
+                  DropdownMenuEntry(value: ApiMethodType.OPTIONS, label: 'OPTIONS'),
                 ],
               ),
               Expanded(

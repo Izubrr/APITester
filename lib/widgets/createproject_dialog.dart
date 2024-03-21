@@ -1,5 +1,12 @@
+import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:diplom/main.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:diplom/pages/project_page.dart';
+import 'dart:html' as html;
+
+import 'package:yaml/yaml.dart';
 
 class CreateProjectDialog extends StatefulWidget {
   @override
@@ -23,6 +30,95 @@ enum IconLabel {
 }
 
 class _CreateProjectDialogState extends State<CreateProjectDialog> {
+  TextEditingController _projectNameController = TextEditingController();
+
+  final FirebaseFirestore fireStore = FirebaseFirestore.instance;
+  late Map<String, dynamic> _yamlMap;
+  String _fileName = '';
+
+  String getFileNameWithoutExtension(String fileName) {
+    var parts = fileName.split('.');
+    parts.removeLast();
+    return parts.join('.');
+  }
+
+  // void _getData() async {
+  //   try {
+  //     DocumentSnapshot documentSnapshot = await _firestore.collection('users').doc('${currentUser?.uid}/parsedYaml/$curFileName').get();
+  //     if (documentSnapshot.exists) {
+  //       String field = documentSnapshot.get(FieldPath(const ['info', 'title'])) as String;
+  //       setState(() {
+  //         _data = field;
+  //       });
+  //     } else {
+  //       print("Document does not exist");
+  //     }
+  //   } catch (e) {
+  //     print(e.toString());
+  //   }a
+  // }
+
+  Map<String, dynamic> _processYamlData(dynamic yamlData) {
+    // Рекурсивная функция для обработки Map
+    Map<String, dynamic> processMap(Map<dynamic, dynamic> map) {
+      final Map<String, dynamic> result = {};
+      map.forEach((key, value) {
+        if (key == 'responses' && value is Map) {
+          // Обработка раздела responses, преобразуем ключи int в String
+          final responses = Map<String, dynamic>.fromIterables(
+              value.keys.map((k) => k.toString()),
+              value.values
+          );
+          result[key.toString()] = responses;
+        } else if (value is Map) {
+          // Рекурсивная обработка для вложенных Map
+          result[key.toString()] = processMap(value);
+        } else {
+          // Копирование остальных значений без изменений
+          result[key.toString()] = value;
+        }
+      });
+      return result;
+    }
+
+    if (yamlData is Map) {
+      // Запуск рекурсивной обработки для корневого элемента
+      return processMap(yamlData);
+    } else {
+      // Возвращаем пустой Map, если данные не соответствуют ожидаемому формату
+      return {};
+    }
+  }
+
+  Future<void> _pickFile(User user) async {
+    final Completer<void> completer = Completer<void>();
+
+    final uploadInput = html.FileUploadInputElement();
+    uploadInput.accept = '.yaml,.yml';
+    uploadInput.click();
+    uploadInput.onChange.listen((e) {
+      final files = uploadInput.files;
+      if (files != null && files.isNotEmpty) {
+        final file = files.first;
+        final reader = html.FileReader();
+        reader.readAsText(file);
+        reader.onLoadEnd.listen((e) {
+          var _yamlData = Map<String, dynamic>.from(loadYaml(reader.result as String));
+          _yamlMap = _processYamlData(_yamlData);
+          _fileName = getFileNameWithoutExtension(file.name);
+          completer.complete();
+        });
+      }
+    });
+    return completer.future; // Возвращаем future, чтобы можно было дождаться его завершения
+  }
+
+
+  @override
+  void dispose() {
+    _projectNameController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,11 +146,15 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
                   },
                 ).toList(),
               ),
-              const Expanded(
+              Expanded(
                 child: SizedBox(
                   width: 80,
                   child: TextField(
-                    decoration: InputDecoration(
+                    onChanged: (text) {
+                      _fileName = _projectNameController.text;
+                    },
+                    controller: _projectNameController,
+                    decoration: const InputDecoration(
                       hintText: 'Project Name',
                     ),
                   ),
@@ -67,16 +167,19 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
             height: 100,
             child: ElevatedButton(
               style: ButtonStyle(
-                minimumSize: MaterialStateProperty.all(Size(100, double.infinity)),
+                minimumSize: MaterialStateProperty.all(const Size(100, double.infinity)),
                 shape: MaterialStateProperty.all(
                   RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
               ),
-              onPressed: () {
-                // Здесь может быть ваша логика для импорта API запроса
-                print('Import project');
+              onPressed: () async {
+                await _pickFile(currentUser!);
+                print(_yamlMap);
+                setState(() {
+                  _projectNameController.text = _fileName;
+                });
               },
               child: const Row(
                 children: [
@@ -94,11 +197,27 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
         }, child: const Text('Cancel')),
         FilledButton.icon(
             onPressed: () {
-              Navigator.of(context).pop();
+              if (_projectNameController.text.isEmpty) {
+                // Показать уведомление, что имя проекта не может быть пустым
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Project name cannot be empty'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              } else {
+                // Логика создания проекта
+                fireStore
+                    .collection('users')
+                    .doc('${currentUser?.uid}/parsedYaml/$_fileName')
+                    .set(_yamlMap);
+                Navigator.of(context).pop();
+              }
             },
             icon: const Icon(Icons.create_new_folder_outlined),
-            label: const Text(' Create a project')
+            label: const Text('Create a project')
         ),
+
       ],
     );
   }

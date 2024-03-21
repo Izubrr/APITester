@@ -275,6 +275,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                       setState(() {
                         _isSigningOut = false;
                       });
+                      currentUser = null;
                       Navigator.of(context).pushReplacement(
                         MaterialPageRoute(
                           builder: (context) => LoginPage(),
