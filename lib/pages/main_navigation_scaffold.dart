@@ -1,14 +1,19 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:diplom/main.dart';
 import 'package:flutter/material.dart';
 import 'project_page.dart';
 import '../widgets/settings_dialog.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import '../widgets/createproject_dialog.dart';
 import 'package:diplom/widgets/empty_nav_rail.dart';
 
 ValueNotifier<NavigationRailLabelType> labelTypeNotifier =
 ValueNotifier(NavigationRailLabelType.all);
+
+class ApiDestination {
+  final String id;
+  final NavigationRailDestination destination;
+
+  ApiDestination({required this.id, required this.destination});
+}
 
 class MainNavigationScaffold extends StatefulWidget {
   const MainNavigationScaffold({Key? key}) : super(key: key);
@@ -20,9 +25,10 @@ class MainNavigationScaffold extends StatefulWidget {
 class _MainNavigationScaffoldState extends State<MainNavigationScaffold> with TickerProviderStateMixin {
 
   int _screenIndex = 0;
+  String? selectedApiId; // ID выбранного API
 
   // Инициализация списка виджетов ProjectPage
-  late final List<Widget> _pages = [
+  final List<Widget> _pages = [
     ProjectPage(
       projectName: 'MyApp1',
       // Создаем объекты Api с endpoint и method
@@ -64,36 +70,53 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold> with Ti
 
   bool _isLoading = true;
 
-  List<NavigationRailDestination> _destinations = [];
+  List<ApiDestination> _destinations = [];
+  var documentNames = [];
 
-  Future<void> _loadDestinations() async {
-    setState(() {
-      _isLoading = true; // Начало загрузки
-    });
-    var collection = fireStore.collection('users/${currentUser?.uid}/parsedYaml').get();
-    print('1 ${DateTime.now().toString()}');
-    var snapshot = await collection;
-    print('2 ${DateTime.now().toString()}');
-    var docs = snapshot.docs.map((doc) => doc.id).toList(); // Получаем названия документов
+  Future<List<ApiDestination>> fetchApiTitlesAndIcons() async {
+    _isLoading = true;
+    print('[1] ${DateTime.now().toString()}');
+    try {
+      final apiCollection = await fireStore.collection('users/${currentUser?.uid}/APIs').get();
+      print('[2] ${DateTime.now().toString()}');
+      for (var doc in apiCollection.docs) {
+        final data = doc.data();
+        if (data.containsKey('info') && data['info'] is Map) {
+          final title = data['info']['title'] as String? ?? 'No Title';
+          IconData? iconData;
 
-    // Преобразуем названия документов в NavigationRailDestination
-    setState(() {
-      print('3 ${DateTime.now().toString()}');
-      _destinations = docs.map((name) => NavigationRailDestination(
-        icon: const Icon(Icons.folder),
-        label: Text(name),
-      )).toList();
-    });
-    setState(() {
-      _isLoading = false; // Загрузка завершена
-      print('Загрузка завершена ${DateTime.now().toString()}');
-    });
+          // Проверка и конвертация iconCode в IconData
+          iconData = IconData(data['iconCode'], fontFamily: 'MaterialIcons');
+
+          // Если иконка не определена, используется стандартная иконка
+          iconData ??= Icons.folder;
+
+          // Создание ApiDestination
+          _destinations.add(
+            ApiDestination(
+              id: doc.id,
+              destination: NavigationRailDestination(
+                icon: Icon(iconData),
+                label: Text(title),
+              ),
+            ),
+          );
+        }
+      }
+      print('[3] ${DateTime.now().toString()}');
+      setState(() {
+        _isLoading = false;
+      });
+    } catch (e) {
+      print("Error fetching API titles and icons: $e");
+    }
+    return _destinations;
   }
 
   @override
   void initState() {
     super.initState();
-    _loadDestinations();
+    fetchApiTitlesAndIcons();
   }
 
   @override
@@ -101,10 +124,10 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold> with Ti
     return Scaffold(
       body: Row(
         children: [
-          ValueListenableBuilder(
+          _isLoading == true ? EmptyNavigationRail() : ValueListenableBuilder(
             valueListenable: labelTypeNotifier,
             builder: (context, labelType, child) {
-              return _isLoading == true ? EmptyNavigationRail() : NavigationRail(
+              return NavigationRail(
                 backgroundColor: ElevationOverlay.applySurfaceTint(
                     Theme.of(context).colorScheme.background,
                     Theme.of(context).colorScheme.primary,
@@ -112,9 +135,10 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold> with Ti
                 onDestinationSelected: ((index) {
                   setState(() {
                     _screenIndex = index;
+                    selectedApiId = _destinations[index].id; // Сохранение ID выбранного API
                   });
                 }),
-                selectedIndex: _screenIndex,
+                selectedIndex: null,
                 labelType: labelType,
                 leading: Padding(
                   padding: const EdgeInsets.all(8.0),
@@ -149,11 +173,11 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold> with Ti
                     ),
                   ),
                 ),
-                destinations: _destinations,
+                destinations: _destinations.map((apiDest) => apiDest.destination).toList(),
               );
             },
           ),
-          _isLoading == true ? const Expanded(child: Center(child: Text('Please wait'))) : Expanded(child: _pages[_screenIndex]),
+          Expanded(child: _pages[_screenIndex]),
         ],
       ),
     );
