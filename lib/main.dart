@@ -5,10 +5,10 @@ import 'package:diplom/pages/login_page.dart';
 
 final ValueNotifier<Color> mainThemeColorNotifier = ValueNotifier<Color>(Colors.green);
 final ValueNotifier<bool> isDarkThemeNotifier = ValueNotifier(true);
+final ValueNotifier<String?> selectedProjectIdNotifier = ValueNotifier(null);
 final scaffoldKey = GlobalKey<ScaffoldMessengerState>();
 User? currentUser = FirebaseAuth.instance.currentUser;
 final FirebaseFirestore fireStore = FirebaseFirestore.instance;
-String currentProject = "";
 String currentApi = "";
 
 void main() {

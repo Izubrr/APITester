@@ -29,7 +29,7 @@ class EmptyNavigationRail extends StatelessWidget {
               child: const Icon(Icons.add),
             ),
           ),
-          CircularProgressIndicator(),
+          const CircularProgressIndicator(),
           Align(
             alignment: Alignment.bottomCenter,
             child: Padding(

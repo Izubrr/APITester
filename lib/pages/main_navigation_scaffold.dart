@@ -22,56 +22,10 @@ class MainNavigationScaffold extends StatefulWidget {
   _MainNavigationScaffoldState createState() => _MainNavigationScaffoldState();
 }
 
+ValueNotifier<List<ApiDestination>> navRailDestinations = ValueNotifier([]);
+
 class _MainNavigationScaffoldState extends State<MainNavigationScaffold> with TickerProviderStateMixin {
-
-  int _screenIndex = 0;
-  String? selectedApiId; // ID выбранного API
-
-  // Инициализация списка виджетов ProjectPage
-  final List<Widget> _pages = [
-    ProjectPage(
-      projectName: 'MyApp1',
-      // Создаем объекты Api с endpoint и method
-      apis: [
-        Api(method: ApiMethodType.GET, endpoint: '/api/v1/resource1', status: ApiStatus.done),
-        Api(method: ApiMethodType.POST, endpoint: '/api/v1/resource2', status: ApiStatus.inProgress),
-        Api(method: ApiMethodType.POST, endpoint: '/api/v1/resource3', ),
-        Api(method: ApiMethodType.POST, endpoint: '/api/v1/resource4', ),
-        Api(method: ApiMethodType.POST, endpoint: '/api/v1/resource5', ),
-        Api(method: ApiMethodType.POST, endpoint: '/api/v1/resource6', ),
-        Api(method: ApiMethodType.PUT, endpoint: '/api/v1/resource7', ),
-        Api(method: ApiMethodType.PUT, endpoint: '/api/v1/resource8', ),
-        Api(method: ApiMethodType.POST, endpoint: '/api/v1/resource9', ),
-        Api(method: ApiMethodType.POST, endpoint: '/api/v1/resource10', ),
-        Api(method: ApiMethodType.DELETE, endpoint: '/api/v1/resource11', ),
-        Api(method: ApiMethodType.DELETE, endpoint: '/api/v1/resource12', ),
-        Api(method: ApiMethodType.DELETE, endpoint: '/api/v1/resource13', ),
-
-      ],
-      testCases: const ['Test Case 1', 'Test Case 2'],
-    ),
-    ProjectPage(
-      projectName: 'MyApp2',
-      apis: [
-        Api(method: ApiMethodType.PUT, endpoint: '/api/v2/resource3', ),
-        Api(method: ApiMethodType.DELETE, endpoint: '/api/v2/resource4', ),
-      ],
-      testCases: const ['Test Case 3', 'Test Case 4'],
-    ),
-    ProjectPage(
-      projectName: 'MyApp3',
-      apis: [
-        Api(method: ApiMethodType.GET, endpoint: '/api/v3/resource5', ),
-        Api(method: ApiMethodType.POST, endpoint: '/api/v3/resource6', ),
-      ],
-      testCases: const ['Test Case 5', 'Test Case 6'],
-    ),
-  ];
-
   bool _isLoading = true;
-
-  List<ApiDestination> _destinations = [];
-  var documentNames = [];
 
   Future<List<ApiDestination>> fetchApiTitlesAndIcons() async {
     _isLoading = true;
@@ -88,11 +42,8 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold> with Ti
           // Проверка и конвертация iconCode в IconData
           iconData = IconData(data['iconCode'], fontFamily: 'MaterialIcons');
 
-          // Если иконка не определена, используется стандартная иконка
-          iconData ??= Icons.folder;
-
           // Создание ApiDestination
-          _destinations.add(
+          navRailDestinations.value.add(
             ApiDestination(
               id: doc.id,
               destination: NavigationRailDestination(
@@ -106,11 +57,12 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold> with Ti
       print('[3] ${DateTime.now().toString()}');
       setState(() {
         _isLoading = false;
+        navRailDestinations;
       });
     } catch (e) {
       print("Error fetching API titles and icons: $e");
     }
-    return _destinations;
+    return navRailDestinations.value;
   }
 
   @override
@@ -124,60 +76,67 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold> with Ti
     return Scaffold(
       body: Row(
         children: [
-          _isLoading == true ? EmptyNavigationRail() : ValueListenableBuilder(
+          if (_isLoading == true) EmptyNavigationRail() else ValueListenableBuilder(
             valueListenable: labelTypeNotifier,
             builder: (context, labelType, child) {
-              return NavigationRail(
-                backgroundColor: ElevationOverlay.applySurfaceTint(
-                    Theme.of(context).colorScheme.background,
-                    Theme.of(context).colorScheme.primary,
-                    3),
-                onDestinationSelected: ((index) {
-                  setState(() {
-                    _screenIndex = index;
-                    selectedApiId = _destinations[index].id; // Сохранение ID выбранного API
-                  });
-                }),
-                selectedIndex: null,
-                labelType: labelType,
-                leading: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: FloatingActionButton(
-                    onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder: (BuildContext context) {
-                          return CreateProjectDialog();
-                        },
-                      );
-                    },
-                    child: const Icon(Icons.add),
-                  ),
-                ),
-                trailing: Expanded(
-                  child: Align(
-                    alignment: Alignment.bottomCenter,
-                    child: Padding(
-                        padding: const EdgeInsets.only(bottom: 8.0),
-                        child: IconButton(
-                          onPressed: () {
-                            showDialog(
-                              context: context,
-                              builder: (BuildContext context) {
-                                return SettingsDialog();
-                              },
-                            );
-                          },
-                          icon: const Icon(Icons.settings),
-                        )
+              return ValueListenableBuilder<List<ApiDestination>>(
+                valueListenable: navRailDestinations,
+                builder: (context, value, child) {
+                  return NavigationRail(
+                    backgroundColor: ElevationOverlay.applySurfaceTint(
+                        Theme.of(context).colorScheme.background,
+                        Theme.of(context).colorScheme.primary,
+                        3
                     ),
-                  ),
-                ),
-                destinations: _destinations.map((apiDest) => apiDest.destination).toList(),
+                    onDestinationSelected: (index) {
+                      setState(() {
+                        selectedProjectIdNotifier.value = value[index].id; // Сохранение ID выбранного API
+                        updateProjectPage = true;
+                      });
+                    },
+                    selectedIndex: null,
+                    labelType: labelType,
+                    leading: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: FloatingActionButton(
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return CreateProjectDialog();
+                            },
+                          );
+                        },
+                        child: const Icon(Icons.add),
+                      ),
+                    ),
+                    trailing: Expanded(
+                      child: Align(
+                        alignment: Alignment.bottomCenter,
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 8.0),
+                          child: IconButton(
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return SettingsDialog();
+                                },
+                              );
+                            },
+                            icon: const Icon(Icons.settings),
+                          ),
+                        ),
+                      ),
+                    ),
+                    destinations: value.map((apiDest) => apiDest.destination).toList(),
+                  );
+                },
               );
+
             },
           ),
-          Expanded(child: _pages[_screenIndex]),
+          Expanded(child: ProjectPage(selectedProjectId: selectedProjectIdNotifier.value)),
         ],
       ),
     );

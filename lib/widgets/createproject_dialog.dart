@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:diplom/main.dart';
+import 'package:diplom/pages/main_navigation_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'dart:html' as html;
 
@@ -71,13 +72,34 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
     // Сохранение данных в Firestore
     await saveApiToFirestore(docMap);
   }
+  Map<String, dynamic> convertKeysToString(Map<dynamic, dynamic> map) {
+    Map<String, dynamic> result = {};
+
+    map.forEach((key, value) {
+      // Convert the key to a string
+      String stringKey = key.toString();
+
+      if (value is Map) {
+        // If the value is a Map, recursively call this function
+        result[stringKey] = convertKeysToString(Map<dynamic, dynamic>.from(value));
+      } else {
+        // Otherwise, just assign the value to the new map
+        result[stringKey] = value;
+      }
+    });
+
+    return result;
+  }
 
 // Функция для сохранения данных API в Firestore
   Future<void> saveApiToFirestore(Map<String, dynamic> apiData) async {
     // Сохранение информации об API
+    Map<String, dynamic> apiDataInfo = Map<String, dynamic>.from(apiData['info']);
+    if(_projectNameController.text.isNotEmpty) apiDataInfo['title'] = _projectNameController.text;
+
     final apiRef = await fireStore.collection('users/${currentUser?.uid}/APIs').add({
       'openapi': apiData['openapi'],
-      'info': apiData['info'],
+      'info': apiDataInfo,
       'servers': apiData['servers'],
     });
     _docId = apiRef.id;
@@ -90,10 +112,12 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
         'path': pathAsString,
       });
 
-      Map<dynamic, dynamic> operations = Map<dynamic, dynamic>.from(pathValue);
+      Map<String, dynamic> operations = Map<String, dynamic>.from(pathValue);
       operations.forEach((operation, operationValue) async {
         final operationAsString = operation.toString(); // Преобразование ключа в строку
-        await fireStore.collection('users/${currentUser?.uid}/APIs/$_docId/Paths/${pathRef.id}/Operations').doc(operationAsString).set(Map<String, dynamic>.from(operationValue));
+        Map<String, dynamic> convertedOperationValue = convertKeysToString(operationValue);
+
+        await fireStore.collection('users/${currentUser?.uid}/APIs/$_docId/Paths/${pathRef.id}/Operations').doc(operationAsString).set(convertedOperationValue);
       });
     });
 
@@ -110,7 +134,17 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
 
     // Обновление или установка поля 'info'
     await docRef.set({ 'iconCode': _selectedIconCode ?? 0xe873 }, SetOptions(merge: true));
-    if (_projectNameController.text.isNotEmpty) await docRef.set({'info': { 'title': _projectNameController.text }});
+
+    navRailDestinations.value.add(
+      ApiDestination(
+        id: _docId,
+        destination: NavigationRailDestination(
+          icon: Icon(IconData(_selectedIconCode!, fontFamily: 'MaterialIcons')),
+          label: Text(apiDataInfo['title']),
+        ),
+      ),
+    );
+    navRailDestinations.notifyListeners();
   }
 
   @override
