@@ -108,7 +108,7 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
     final paths = apiData['paths'] as Map<dynamic, dynamic>;
     paths.forEach((path, pathValue) async {
       final pathAsString = path.toString(); // Преобразование ключа в строку
-      final pathRef = await fireStore.collection('users/${currentUser?.uid}/APIs/$_docId/Paths').add({
+      final pathRef = await fireStore.collection('users/${currentUser?.uid}/APIs/$_docId/paths').add({
         'path': pathAsString,
       });
 
@@ -117,7 +117,9 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
         final operationAsString = operation.toString(); // Преобразование ключа в строку
         Map<String, dynamic> convertedOperationValue = convertKeysToString(operationValue);
 
-        await fireStore.collection('users/${currentUser?.uid}/APIs/$_docId/Paths/${pathRef.id}/Operations').doc(operationAsString).set(convertedOperationValue);
+// Now use convertedOperationValue in your Firestore operation
+        await fireStore.collection('users/${currentUser?.uid}/APIs/$_docId/paths/${pathRef.id}/operations').doc(operationAsString).set(convertedOperationValue);
+
       });
     });
 
@@ -126,7 +128,7 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
       final components = apiData['components'] as Map<dynamic, dynamic>;
       components.forEach((componentType, componentDetails) async {
         final componentTypeAsString = componentType.toString(); // Преобразование ключа в строку
-        final componentRef = fireStore.collection('users/${currentUser?.uid}/APIs/$_docId/Components').doc(componentTypeAsString);
+        final componentRef = fireStore.collection('users/${currentUser?.uid}/APIs/$_docId/components').doc(componentTypeAsString);
         await componentRef.set(Map<String, dynamic>.from(componentDetails));
       });
     }

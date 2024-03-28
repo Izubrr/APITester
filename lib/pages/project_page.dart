@@ -1,15 +1,57 @@
+import 'dart:convert';
 import 'dart:math';
-
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:diplom/main.dart';
 import 'package:flutter/material.dart';
 import 'package:diplom/widgets/addapi_dialog.dart';
+import 'package:flutter/src/foundation/change_notifier.dart';
+import 'package:flutter_highlight/flutter_highlight.dart';
+import 'package:flutter_highlight/themes/github.dart';
+import 'package:flutter_highlight/themes/monokai-sublime.dart';
 
 // Определение перечисления ApiStatus
 enum ApiStatus {
-  inProgress,
   done,
   notDone,
+  inProgress,
+}
+
+extension ApiStatusExtension on ApiStatus {
+  static ApiStatus fromString(String status) {
+    switch (status) {
+      case 'inProgress':
+        return ApiStatus.inProgress;
+      case 'done':
+        return ApiStatus.done;
+      case 'notDone':
+        return ApiStatus.notDone;
+      default:
+        return ApiStatus.inProgress;
+    }
+  }
+
+  static String convertToString(ApiStatus status) {
+    switch (status) {
+      case ApiStatus.inProgress:
+        return 'inProgress';
+      case ApiStatus.done:
+        return 'done';
+      case ApiStatus.notDone:
+        return 'notDone';
+      default:
+        return 'inProgress';
+    }
+  }
+
+  String get name {
+    switch (this) {
+      case ApiStatus.inProgress:
+        return 'inProgress';
+      case ApiStatus.done:
+        return 'done';
+      case ApiStatus.notDone:
+        return 'notDone';
+    }
+  }
 }
 
 enum ApiMethodType {
@@ -66,22 +108,29 @@ extension ApiMethodTypeExtension on ApiMethodType {
   }
 }
 
+final TextEditingController descriptionController = TextEditingController();
 
 class PathObject {
   final ApiMethodType method;
   final String endpoint;
-  List<String> tags;
+  final String pathId;
+  List<dynamic> tags;
   ApiStatus status;
   String summary;
+  String description;
+  String operationId;
   Map<String, dynamic> requestBody;
   Map<String, dynamic> responses;
 
   PathObject({
     required this.method,
     required this.endpoint,
-    this.tags = const ['', ''],
+    required this.pathId,
+    required this.operationId,
+    this.tags = const [],
     this.status = ApiStatus.inProgress,
     this.summary = '',
+    this.description= '',
     this.requestBody = const {
       '1': "Tom",
       '2': "Bob",
@@ -100,6 +149,8 @@ Map<String, dynamic> testCases = {
   '2': "Bob",
   '3': "Sam"
 };
+
+Map<String, String> apiDataCache = {};
 
 // Страница деталей для API
 class ApiDetailPage extends StatefulWidget {
@@ -138,72 +189,252 @@ class _ApiDetailPageState extends State<ApiDetailPage> {
     super.initState();
   }
 
+  Future<String> fetchSchemaWithRefsResolved(String pathId, String operationId) async {
+    var refPath = 'users/${currentUser?.uid}/APIs/${selectedProjectIdNotifier.value}/paths/$pathId/operations/$operationId';
+    var operationDoc = await fireStore.doc(refPath).get();
+    var operationData = operationDoc.data();
+
+    var requestBody = operationData?['requestBody'] as Map<String, dynamic>;
+    var resultMap = await resolveRefsInMap(requestBody, pathId, mapId: 'schema');
+
+    var result = const JsonEncoder.withIndent('  ').convert(resultMap);
+    return result;
+  }
+
+  Future<Map<String, dynamic>> resolveRefsInMap(Map<String, dynamic> map, String pathId, {String mapId = ''}) async {
+    Future<Map<String, dynamic>> _resolve(Map<String, dynamic> currentMap, String currentPathId) async {
+      Map<String, dynamic> resolvedMap = {};
+      for (var key in currentMap.keys) {
+        var value = currentMap[key];
+        if (value is Map) {
+          // Если значение является Map, рекурсивно разрешаем его
+          resolvedMap[key] = await _resolve(value as Map<String, dynamic>, currentPathId);
+        } else if (key == '\$ref' && value is String) {
+          // Разрешаем ссылку
+          var refPath = value.replaceAll('#/', 'users/${currentUser?.uid}/APIs/${selectedProjectIdNotifier.value}/');
+          List<String> refParts = refPath.split('/');
+
+          // Корректируем для правильного пути и ID документа
+          refPath = refParts.sublist(0, refParts.length - 2).join('/');
+          String refDocId = refParts[refParts.length - 2];
+          String refMapId = refParts.last;
+
+          // Получаем ссылочный документ
+          final collection = await fireStore.collection(refPath).doc(refDocId).get();
+          final collectionData = collection.data();
+
+          // Предполагаем, что данные ссылки вложены в документ
+          Map<String, dynamic>? data = collectionData?[refMapId];
+          if (data != null) {
+            // Разрешаем любые вложенные ссылки в полученных данных
+            resolvedMap = await _resolve(data, currentPathId);
+          }
+        } else {
+          // В любом другом случае просто копируем значение
+          resolvedMap[key] = value;
+        }
+      }
+
+      return resolvedMap;
+    }
+    var result = await _resolve(map, pathId);
+    result = extractValueByKey(result, 'schema');
+
+    return result;
+  }
+
+  dynamic extractValueByKey(Map<String, dynamic> map, String key) {
+    dynamic value;
+    void searchMap(Map<String, dynamic> currentMap) {
+      if (currentMap.containsKey(key)) {
+        value = currentMap[key];
+        return;
+      }
+      for (var entry in currentMap.entries) {
+        if (entry.value is Map<String, dynamic>) {
+          searchMap(entry.value);
+          if (value != null) return;
+        }
+      }
+    }
+
+    searchMap(map);
+    return value;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Column(
-        children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final codeTheme = isDarkMode ? monokaiSublimeTheme : githubTheme;
+    return Align(
+      alignment: Alignment.topCenter,
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            children: [
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(0, 0, 0, 7),
+                        child: SelectableText('${widget.api.method.name}  ',
+                            style: Theme.of(context).textTheme.titleLarge),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(0, 0, 0, 7),
+                        child: SelectableText(widget.api.endpoint, style: Theme.of(context).textTheme.titleMedium),
+                      ),
+                      const VerticalDivider(),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
+                          child: TextField(
+                            controller: descriptionController,
+                            onEditingComplete: () async {
+                              // Проверка на валидность выбранного индекса API
+                              if (selectedApiIndex >= 0 && selectedApiIndex < paths.length) {
+                                try {
+                                  // Обновление поля description для конкретного API в Firestore
+                                  await fireStore.collection('users/${currentUser?.uid}/APIs/${selectedProjectIdNotifier.value}/paths/${paths[selectedApiIndex].pathId}/operations')
+                                      .doc(paths[selectedApiIndex].operationId) // ID документа API
+                                      .update({'description': descriptionController.text });
+
+                                  // Обновление локальной копии после успешного обновления Firestore
+                                  setState(() {
+                                    paths[selectedApiIndex].description = descriptionController.text;
+                                  });
+
+                                  print("Description updated successfully");
+                                } catch (e) {
+                                  print("Error updating description: $e");
+                                }
+                              }
+                            },
+                            decoration: const InputDecoration(
+                              hintText: 'Description',
+                            ),
+                          ),
+                        ),
+                      ),
+                      const VerticalDivider(),
+                      Container(
+                        decoration: BoxDecoration(
+                            color: getStatusColor(),
+                            borderRadius:
+                            const BorderRadius.all(Radius.circular(12))),
+                        child: DropdownButton<ApiStatus>(
+                          focusColor: Colors.transparent,
+                          isDense: true,
+                          underline: const Text(''),
+                          padding: const EdgeInsets.all(5),
+                          borderRadius: BorderRadius.circular(12.0),
+                          value: paths[selectedApiIndex].status,
+                          onChanged: (ApiStatus? newValue) async {
+                            // Проверка на валидность выбранного индекса API
+                            if (paths[selectedApiIndex].status != newValue) {
+                              try {
+                                // Обновление поля description для конкретного API в Firestore
+                                await fireStore.collection('users/${currentUser?.uid}/APIs/${selectedProjectIdNotifier.value}/paths/${paths[selectedApiIndex].pathId}/operations')
+                                    .doc(paths[selectedApiIndex].operationId) // ID документа API
+                                    .update({'status': ApiStatusExtension.convertToString(newValue!)});
+
+                                // Обновление локальной копии после успешного обновления Firestore
+                                setState(() {
+                                  paths[selectedApiIndex].status = newValue;
+                                });
+                                //selectedProjectIdNotifier.notifyListeners();
+                              } catch (e) {
+                                print("Error updating status: $e");
+                              }
+                            }
+                          },
+                          items: const [
+                            DropdownMenuItem(
+                              value: ApiStatus.notDone,
+                              child: Text('ToDo'),
+                            ),
+                            DropdownMenuItem(
+                              value: ApiStatus.inProgress,
+                              child: Text('In Progress'),
+                            ),
+                            DropdownMenuItem(
+                              value: ApiStatus.done,
+                              child: Text('Done'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Row(
                 children: [
-                  Text('${widget.api.method.name}  ',
-                      style: Theme.of(context).textTheme.titleLarge),
-                  Text(widget.api.endpoint,
-                      style: Theme.of(context).textTheme.labelLarge),
-                  const VerticalDivider(),
-                  const Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(0, 0, 0, 16),
-                      child: TextField(
-                        decoration: InputDecoration(
-                          hintText: 'Description',
+                  Expanded(
+                    child: Card(
+                      child: ListTile(
+                        title: const Text('JSON Scheme'),
+                        subtitle: SingleChildScrollView(
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child:
+                            FutureBuilder<String>(
+                              future: () async {
+                                // Ключ для кэширования, который комбинирует идентификатор проекта и индекс API
+                                String cacheKey = '${selectedProjectIdNotifier.value}-$selectedApiIndex';
+
+                                // Проверяем, есть ли данные в кэше для текущего API
+                                String? cachedData = apiDataCache[cacheKey];
+                                if (cachedData != null) {
+                                  // Если данные есть в кэше, возвращаем их, оборачивая в Future
+                                  return cachedData;
+                                } else {
+                                  // Если в кэше нет данных, загружаем их и сохраняем в кэш
+                                  String newData = await fetchSchemaWithRefsResolved(paths[selectedApiIndex].pathId, paths[selectedApiIndex].operationId);
+                                  apiDataCache[cacheKey] = newData;
+                                  return newData;
+                                }
+                              }(),
+                              builder: (context, snapshot) {
+                                return HighlightView(
+                                  snapshot.connectionState == ConnectionState.waiting
+                                      ? '{\n  print("Data is loading...");\n}'
+                                      : snapshot.hasError
+                                      ? '{\n  print("There is no JSON Scheme");\n}'
+                                      : snapshot.data!,
+                                  language: 'json',
+                                  theme: codeTheme,
+                                  padding: const EdgeInsets.all(12),
+                                  textStyle: const TextStyle(
+                                    fontFamily: 'monospace',
+                                    fontSize: 14,
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ),
-                  const VerticalDivider(),
-                  Container(
-                    decoration: BoxDecoration(
-                        color: getStatusColor(),
-                        borderRadius:
-                        const BorderRadius.all(Radius.circular(12))),
-                    child: DropdownButton<ApiStatus>(
-                      focusColor: Colors.transparent,
-                      isDense: true,
-                      underline: const Text(''),
-                      padding: const EdgeInsets.all(5),
-                      borderRadius: BorderRadius.circular(12.0),
-                      value: widget.api.status,
-                      onChanged: (ApiStatus? newValue) {
-                        setState(() {
-                          widget.api.status = newValue!;
-                        });
-                      },
-                      items: const [
-                        DropdownMenuItem(
-                          value: ApiStatus.notDone,
-                          child: Text('ToDo'),
-                        ),
-                        DropdownMenuItem(
-                          value: ApiStatus.inProgress,
-                          child: Text('In Progress'),
-                        ),
-                        DropdownMenuItem(
-                          value: ApiStatus.done,
-                          child: Text('Done'),
-                        ),
-                      ],
+                  const Expanded(
+                    child: Card(
+                      child: ListTile(
+                        title: Text('Linked Test Cases'),
+                        subtitle: Text(
+                            'Left - light theme; Right - dark theme'),
+                      ),
                     ),
                   ),
                 ],
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -251,74 +482,85 @@ String projectName = 'Project Name';
 List<PathObject> paths = [];
 bool updateProjectPage = false;
 bool filterEnabled = false;
+late int apiIndex;
+int selectedApiIndex = -1;
 
 class _ProjectPageState extends State<ProjectPage>
     with SingleTickerProviderStateMixin {
+
+  void _onSelectedProjectIdChange() {
+    // Устанавливаем selectedApiIndex в -1 при каждом изменении selectedProjectId
+    setState(() {
+      selectedApiIndex = -1;
+      paths = [];
+      apiDataCache = {};
+    });
+  }
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    selectedProjectIdNotifier.addListener(_onSelectedProjectIdChange);
   }
   var pathsCollection;
   var operationsCollection;
 
   Map<String, List<PathObject>> taggedApis = {};
-  List<PathObject> paths = [];
 
   Future<void> fetchProjectData() async {
-    try {
-      final apiRef = fireStore.collection('users/${currentUser?.uid}/APIs').doc(widget.selectedProjectId);
-      final apiDoc = await apiRef.get();
-      final apiData = apiDoc.data();
-      if (apiData != null && apiData.containsKey('info') && apiData['info'] is Map) {
-        projectName = apiData['info']['title'];
-      }
+    final apiRef = fireStore.collection('users/${currentUser?.uid}/APIs').doc(widget.selectedProjectId);
+    final apiDoc = await apiRef.get();
+    final apiData = apiDoc.data();
+    if (apiData != null && apiData.containsKey('info') && apiData['info'] is Map) {
+      projectName = apiData['info']['title'];
+    }
 
-      Map<String, List<PathObject>> tempTaggedApis = {};
-      List<PathObject> apisWithoutTag = [];
+    Map<String, List<PathObject>> tempTaggedApis = {};
+    List<PathObject> apisWithoutTag = [];
 
-      final pathsCollection = await apiRef.collection('Paths').get();
-      for (var pathDoc in pathsCollection.docs) {
-        final pathData = pathDoc.data();
-        final operationsCollection = await apiRef.collection('Paths/${pathDoc.id}/Operations').get();
-        for (var operationDoc in operationsCollection.docs) {
-          var operationData = operationDoc.data();
-          var tags = operationData['tags'] as List<dynamic>? ?? [];
-          var pathObject = PathObject(
+    final pathsCollection = await apiRef.collection('paths').get();
+    for (var pathDoc in pathsCollection.docs) {
+      final pathData = pathDoc.data();
+      final operationsCollection = await apiRef.collection('paths/${pathDoc.id}/operations').get();
+      for (var operationDoc in operationsCollection.docs) {
+        var operationData = operationDoc.data();
+        var tags = operationData['tags'] ?? [];
+        var description = operationData['description'];
+        var status = operationData['status'] ?? 'inProgress';
+        var pathObject = PathObject(
             method: ApiMethodTypeExtension.fromString(operationDoc.id),
             endpoint: pathData['path'],
-          );
-          paths.add(PathObject(
-            method: ApiMethodTypeExtension.fromString(operationDoc.id), // предполагается, что у вас есть метод для конвертации строки в enum
-            endpoint: pathData['path'],
-          ));
+            pathId: pathDoc.id,
+            operationId: operationDoc.id,
+            tags: tags,
+            description: description ?? '',
+            status: ApiStatusExtension.fromString(status),
+        );
+        paths.add(pathObject);
 
-          if (tags.isEmpty) {
-            apisWithoutTag.add(pathObject);
-          } else {
-            tags.forEach((tag) {
-              tempTaggedApis.putIfAbsent(tag.toString(), () => []).add(pathObject);
-            });
-          }
+        if (tags.isEmpty) {
+          apisWithoutTag.add(pathObject);
+        } else {
+          tags.forEach((tag) {
+            tempTaggedApis.putIfAbsent(tag.toString(), () => []).add(pathObject);
+          });
         }
       }
-
-      // Добавляем APIs без тегов под специальным ключом
-      tempTaggedApis['Without Tag'] = apisWithoutTag;
-
-      setState(() {
-        taggedApis = tempTaggedApis;
-        updateProjectPage = false;
-      });
-    } catch (e) {
-      print("Error fetching project data: $e");
     }
+
+    // Добавляем APIs без тегов под специальным ключом
+    tempTaggedApis['Without Tag'] = apisWithoutTag;
+
+    setState(() {
+      taggedApis = tempTaggedApis;
+      updateProjectPage = false;
+    });
   }
 
   late TabController _tabController;
 
-  int selectedApiIndex = -1;
+
   int selectedTestCaseIndex = -1;
 
   final ValueNotifier<FilterOption?> currentFilter = ValueNotifier(null);
@@ -519,7 +761,7 @@ class _ProjectPageState extends State<ProjectPage>
                                   a.status.index.compareTo(b.status.index));
                               break;
                             default: filterEnabled = false;
-                              break;
+                            break;
                           }
                           // Возвращаем отфильтрованный и отсортированный список
                           return ValueListenableBuilder<String?>(
@@ -559,8 +801,10 @@ class _ProjectPageState extends State<ProjectPage>
                                             if (apiIndex != -1) {
                                               setState(() {
                                                 selectedApiIndex = apiIndex;
+                                                descriptionController.text = paths[apiIndex].description;
                                               });
                                             }
+                                            print(paths[selectedApiIndex].status.name + paths[selectedApiIndex].endpoint);
                                           }),
                                         )).toList(),
                                       );
@@ -580,7 +824,7 @@ class _ProjectPageState extends State<ProjectPage>
                                         title: Text('${api.method.name} ${api.endpoint}'),
                                         onTap: () => setState(() {
                                           // Находим индекс api в общем списке paths
-                                          int apiIndex = paths.indexWhere((path) =>
+                                          apiIndex = paths.indexWhere((path) =>
                                           path.method == api.method && path.endpoint == api.endpoint);
                                           // Обновляем selectedApiIndex если объект найден
                                           if (apiIndex != -1) {
@@ -588,6 +832,7 @@ class _ProjectPageState extends State<ProjectPage>
                                               selectedApiIndex = apiIndex;
                                             });
                                           }
+                                          print(paths[selectedApiIndex].status.name + paths[selectedApiIndex].endpoint);
                                         }),
                                       );
                                     },
