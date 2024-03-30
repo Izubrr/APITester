@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 import 'package:diplom/main.dart';
+import 'package:diplom/widgets/request-response_example.dart';
 import 'package:flutter/material.dart';
 import 'package:diplom/widgets/addapi_dialog.dart';
 import 'package:flutter/src/foundation/change_notifier.dart';
@@ -120,35 +121,22 @@ class PathObject {
   String description;
   String operationId;
   Map<String, dynamic> requestBody;
-  Map<String, dynamic> responses;
+  List<dynamic> responses;
 
-  PathObject({
-    required this.method,
-    required this.endpoint,
-    required this.pathId,
-    required this.operationId,
-    this.tags = const [],
-    this.status = ApiStatus.inProgress,
-    this.summary = '',
-    this.description= '',
-    this.requestBody = const {
-      '1': "Tom",
-      '2': "Bob",
-      '3': "Sam"
-    },
-    this.responses = const {
-      '1': "Tom",
-      '2': "Bob",
-      '3': "Sam"
-    },
-  });
+  PathObject(
+      {required this.method,
+      required this.endpoint,
+      required this.pathId,
+      required this.operationId,
+      this.tags = const [],
+      this.status = ApiStatus.inProgress,
+      this.summary = '',
+      this.description = '',
+      this.requestBody = const {'1': "Tom", '2': "Bob", '3': "Sam"},
+      this.responses = const []});
 }
 
-Map<String, dynamic> testCases = {
-  '1': "Tom",
-  '2': "Bob",
-  '3': "Sam"
-};
+Map<String, dynamic> testCases = {'1': "Tom", '2': "Bob", '3': "Sam"};
 
 Map<String, String> apiDataCache = {};
 
@@ -184,64 +172,86 @@ class _ApiDetailPageState extends State<ApiDetailPage> {
     return colorScheme;
   }
 
-  @override
-  void initState() {
-    super.initState();
-  }
+  Future<String> fetchMapWithRefs({
+    String? refPath,
+    Map<String, dynamic>? map,
+    String? parentMapId,
+    String? requestMapId,
+  }) async {
+    assert(refPath != null || map != null, 'Must provide either a refPath or a map');
+    assert(!(refPath != null && map != null), 'Cannot provide both a refPath and a map');
+    assert(refPath == null || parentMapId != null, 'Must provide parentMapId if refPath is given');
 
-  Future<String> fetchSchemaWithRefsResolved(String pathId, String operationId) async {
-    var refPath = 'users/${currentUser?.uid}/APIs/${selectedProjectIdNotifier.value}/paths/$pathId/operations/$operationId';
-    var operationDoc = await fireStore.doc(refPath).get();
-    var operationData = operationDoc.data();
+    Map<String, dynamic>? requestMap;
 
-    var requestBody = operationData?['requestBody'] as Map<String, dynamic>;
-    var resultMap = await resolveRefsInMap(requestBody, pathId, mapId: 'schema');
+    // Если предоставлен refPath, загрузите Map из Firestore
+    if (refPath != null) {
+      var operationDoc = await fireStore.doc(refPath).get();
+      var operationData = operationDoc.data();
+      requestMap = operationData?[parentMapId] as Map<String, dynamic>?;
+    } else {
+      // Если предоставлен Map, используйте его напрямую
+      requestMap = map;
+    }
 
+    if (requestMap == null) {
+      throw Exception('Map not found at the given path or map is null');
+    }
+
+    var resultMap = await resolveRefsInMap(requestMap, mapId: requestMapId);
     var result = const JsonEncoder.withIndent('  ').convert(resultMap);
     return result;
   }
 
-  Future<Map<String, dynamic>> resolveRefsInMap(Map<String, dynamic> map, String pathId, {String mapId = ''}) async {
-    Future<Map<String, dynamic>> _resolve(Map<String, dynamic> currentMap, String currentPathId) async {
-      Map<String, dynamic> resolvedMap = {};
-      for (var key in currentMap.keys) {
-        var value = currentMap[key];
-        if (value is Map) {
-          // Если значение является Map, рекурсивно разрешаем его
-          resolvedMap[key] = await _resolve(value as Map<String, dynamic>, currentPathId);
-        } else if (key == '\$ref' && value is String) {
-          // Разрешаем ссылку
-          var refPath = value.replaceAll('#/', 'users/${currentUser?.uid}/APIs/${selectedProjectIdNotifier.value}/');
-          List<String> refParts = refPath.split('/');
 
-          // Корректируем для правильного пути и ID документа
-          refPath = refParts.sublist(0, refParts.length - 2).join('/');
-          String refDocId = refParts[refParts.length - 2];
-          String refMapId = refParts.last;
-
-          // Получаем ссылочный документ
-          final collection = await fireStore.collection(refPath).doc(refDocId).get();
-          final collectionData = collection.data();
-
-          // Предполагаем, что данные ссылки вложены в документ
-          Map<String, dynamic>? data = collectionData?[refMapId];
-          if (data != null) {
-            // Разрешаем любые вложенные ссылки в полученных данных
-            resolvedMap = await _resolve(data, currentPathId);
-          }
-        } else {
-          // В любом другом случае просто копируем значение
-          resolvedMap[key] = value;
+  Future<Map<String, dynamic>> resolveRefsInMap(Map<String, dynamic> map, {String? mapId = ''}) async {
+    Future<dynamic> resolve(dynamic current) async {
+      if (current is Map<String, dynamic>) {
+        Map<String, dynamic> resolvedMap = {};
+        for (var key in current.keys) {
+          var value = current[key];
+          resolvedMap[key] = await resolve(value);
         }
+        return resolvedMap;
+      } else if (current is List) {
+        List<dynamic> resolvedList = [];
+        for (var item in current) {
+          resolvedList.add(await resolve(item));
+        }
+        return resolvedList as dynamic;
+      } else if (current is String && current.startsWith('#/')) {
+        // Обработка $ref ссылок, предполагается, что строка начинается с '#/'
+        var refPath = current.replaceAll('#/', 'users/${currentUser?.uid}/APIs/${selectedProjectIdNotifier.value}/');
+        List<String> refParts = refPath.split('/');
+
+        // Корректируем для правильного пути и ID документа
+        refPath = refParts.sublist(0, refParts.length - 2).join('/');
+        String refDocId = refParts[refParts.length - 2];
+        String refMapId = refParts.last;
+
+        // Получаем ссылочный документ
+        final collection = await fireStore.collection(refPath).doc(refDocId).get();
+        final collectionData = collection.data();
+
+        // Предполагаем, что данные ссылки вложены в документ
+        Map<String, dynamic>? data = collectionData?[refMapId] as Map<String, dynamic>?;
+        if (data != null) {
+          return await resolve(data);
+        } else {
+          return current; // Возвращаем текущую строку, если ссылка не разрешена
+        }
+      } else {
+        return current; // Возвращаем текущее значение без изменений, если оно не Map и не List
       }
-
-      return resolvedMap;
     }
-    var result = await _resolve(map, pathId);
-    result = extractValueByKey(result, 'schema');
 
-    return result;
+    var result = await resolve(map);
+    if (mapId != null && mapId.isNotEmpty) {
+      result = extractValueByKey(result, mapId);
+    }
+    return result as Map<String, dynamic>;
   }
+
 
   dynamic extractValueByKey(Map<String, dynamic> map, String key) {
     dynamic value;
@@ -260,6 +270,16 @@ class _ApiDetailPageState extends State<ApiDetailPage> {
 
     searchMap(map);
     return value;
+  }
+
+  late String selectedResponse;
+
+  @override
+  void initState() {
+    super.initState();
+    if (paths[selectedApiIndex].responses.isNotEmpty) {
+      selectedResponse = paths[selectedApiIndex].responses.first;
+    }
   }
 
   @override
@@ -286,7 +306,8 @@ class _ApiDetailPageState extends State<ApiDetailPage> {
                       ),
                       Padding(
                         padding: const EdgeInsets.fromLTRB(0, 0, 0, 7),
-                        child: SelectableText(widget.api.endpoint, style: Theme.of(context).textTheme.titleMedium),
+                        child: SelectableText(widget.api.endpoint,
+                            style: Theme.of(context).textTheme.titleMedium),
                       ),
                       const VerticalDivider(),
                       Expanded(
@@ -296,21 +317,28 @@ class _ApiDetailPageState extends State<ApiDetailPage> {
                             controller: descriptionController,
                             onEditingComplete: () async {
                               // Проверка на валидность выбранного индекса API
-                              if (selectedApiIndex >= 0 && selectedApiIndex < paths.length) {
+                              if (selectedApiIndex >= 0 &&
+                                  selectedApiIndex < paths.length) {
                                 try {
                                   // Обновление поля description для конкретного API в Firestore
-                                  await fireStore.collection('users/${currentUser?.uid}/APIs/${selectedProjectIdNotifier.value}/paths/${paths[selectedApiIndex].pathId}/operations')
-                                      .doc(paths[selectedApiIndex].operationId) // ID документа API
-                                      .update({'description': descriptionController.text });
+                                  await fireStore
+                                      .collection(
+                                          'users/${currentUser?.uid}/APIs/${selectedProjectIdNotifier.value}/paths/${paths[selectedApiIndex].pathId}/operations')
+                                      .doc(paths[selectedApiIndex]
+                                          .operationId) // ID документа API
+                                      .update({
+                                    'description': descriptionController.text
+                                  });
 
                                   // Обновление локальной копии после успешного обновления Firestore
                                   setState(() {
-                                    paths[selectedApiIndex].description = descriptionController.text;
+                                    paths[selectedApiIndex].description =
+                                        descriptionController.text;
                                   });
 
-                                  print("Description updated successfully");
+                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Description updated successfully')));
                                 } catch (e) {
-                                  print("Error updating description: $e");
+                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error updating description: $e')));
                                 }
                               }
                             },
@@ -325,7 +353,7 @@ class _ApiDetailPageState extends State<ApiDetailPage> {
                         decoration: BoxDecoration(
                             color: getStatusColor(),
                             borderRadius:
-                            const BorderRadius.all(Radius.circular(12))),
+                                const BorderRadius.all(Radius.circular(12))),
                         child: DropdownButton<ApiStatus>(
                           focusColor: Colors.transparent,
                           isDense: true,
@@ -338,9 +366,15 @@ class _ApiDetailPageState extends State<ApiDetailPage> {
                             if (paths[selectedApiIndex].status != newValue) {
                               try {
                                 // Обновление поля description для конкретного API в Firestore
-                                await fireStore.collection('users/${currentUser?.uid}/APIs/${selectedProjectIdNotifier.value}/paths/${paths[selectedApiIndex].pathId}/operations')
-                                    .doc(paths[selectedApiIndex].operationId) // ID документа API
-                                    .update({'status': ApiStatusExtension.convertToString(newValue!)});
+                                await fireStore
+                                    .collection(
+                                        'users/${currentUser?.uid}/APIs/${selectedProjectIdNotifier.value}/paths/${paths[selectedApiIndex].pathId}/operations')
+                                    .doc(paths[selectedApiIndex]
+                                        .operationId) // ID документа API
+                                    .update({
+                                  'status': ApiStatusExtension.convertToString(
+                                      newValue!)
+                                });
 
                                 // Обновление локальной копии после успешного обновления Firestore
                                 setState(() {
@@ -348,7 +382,7 @@ class _ApiDetailPageState extends State<ApiDetailPage> {
                                 });
                                 //selectedProjectIdNotifier.notifyListeners();
                               } catch (e) {
-                                print("Error updating status: $e");
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error updating status: $e')));
                               }
                             }
                           },
@@ -372,49 +406,56 @@ class _ApiDetailPageState extends State<ApiDetailPage> {
                   ),
                 ),
               ),
+              const SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(
                     child: Card(
                       child: ListTile(
                         title: const Text('JSON Scheme'),
-                        subtitle: SingleChildScrollView(
-                          child: Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child:
-                            FutureBuilder<String>(
-                              future: () async {
-                                // Ключ для кэширования, который комбинирует идентификатор проекта и индекс API
-                                String cacheKey = '${selectedProjectIdNotifier.value}-$selectedApiIndex';
+                        subtitle: SizedBox(
+                          height: 300,
+                          child: SingleChildScrollView(
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: FutureBuilder<String>(
+                                future: () async {
+                                  // Ключ для кэширования, который комбинирует идентификатор проекта и индекс API
+                                  String cacheKey = 'schema-${selectedProjectIdNotifier.value}-$selectedApiIndex';
 
-                                // Проверяем, есть ли данные в кэше для текущего API
-                                String? cachedData = apiDataCache[cacheKey];
-                                if (cachedData != null) {
-                                  // Если данные есть в кэше, возвращаем их, оборачивая в Future
-                                  return cachedData;
-                                } else {
-                                  // Если в кэше нет данных, загружаем их и сохраняем в кэш
-                                  String newData = await fetchSchemaWithRefsResolved(paths[selectedApiIndex].pathId, paths[selectedApiIndex].operationId);
-                                  apiDataCache[cacheKey] = newData;
-                                  return newData;
-                                }
-                              }(),
-                              builder: (context, snapshot) {
-                                return HighlightView(
-                                  snapshot.connectionState == ConnectionState.waiting
-                                      ? '{\n  print("Data is loading...");\n}'
-                                      : snapshot.hasError
-                                      ? '{\n  print("There is no JSON Scheme");\n}'
-                                      : snapshot.data!,
-                                  language: 'json',
-                                  theme: codeTheme,
-                                  padding: const EdgeInsets.all(12),
-                                  textStyle: const TextStyle(
-                                    fontFamily: 'monospace',
-                                    fontSize: 14,
-                                  ),
-                                );
-                              },
+                                  // Проверяем, есть ли данные в кэше для текущего API
+                                  String? cachedData = apiDataCache[cacheKey];
+                                  if (cachedData != null) {
+                                    // Если данные есть в кэше, возвращаем их, оборачивая в Future
+                                    return cachedData;
+                                  } else {
+                                    // Если в кэше нет данных, загружаем их и сохраняем в кэш
+                                    String newData = await fetchMapWithRefs(
+                                        map: requestBodyCodes[paths[selectedApiIndex].pathId],
+                                        requestMapId: 'schema');
+                                    apiDataCache[cacheKey] = newData;
+                                    return newData;
+                                  }
+                                }(),
+                                builder: (context, snapshot) {
+                                  return snapshot.connectionState ==
+                                          ConnectionState.waiting
+                                      ? const CircularProgressIndicator()
+                                      : !snapshot.hasData
+                                          ? const Text(
+                                              'There is no JSON Scheme')
+                                          : HighlightView(
+                                              snapshot.data!,
+                                              language: 'json',
+                                              theme: codeTheme,
+                                              padding: const EdgeInsets.all(12),
+                                              textStyle: const TextStyle(
+                                                fontFamily: 'monospace',
+                                                fontSize: 14,
+                                              ),
+                                            );
+                                },
+                              ),
                             ),
                           ),
                         ),
@@ -425,10 +466,145 @@ class _ApiDetailPageState extends State<ApiDetailPage> {
                     child: Card(
                       child: ListTile(
                         title: Text('Linked Test Cases'),
-                        subtitle: Text(
-                            'Left - light theme; Right - dark theme'),
+                        subtitle: SizedBox(
+                            height: 300,
+                            child:
+                                Text('Left - light theme; Right - dark theme')),
                       ),
                     ),
+                  ),
+                ],
+              ),
+              Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Align(
+                      alignment: Alignment.topLeft,
+                      child: SegmentedButton<String>(
+                        segments: paths[selectedApiIndex].responses.map((key) {
+                          return ButtonSegment<String>(
+                            value: key,
+                            label: Text(key),
+                          );
+                        }).toList(),
+                        selected: {selectedResponse},
+                        onSelectionChanged: (newSelection) {
+                          setState(() {
+                            selectedResponse = newSelection.first;
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Card(
+                          child: ListTile(
+                            title: const Text('Request Sample'),
+                            subtitle: SizedBox(
+                              height: 300,
+                              child: SingleChildScrollView(
+                                child: FutureBuilder<String>(
+                                  future: () async {
+                                    // Ключ для кэширования, который комбинирует идентификатор проекта и индекс API
+                                    String cacheKey = 'requestExample-${selectedProjectIdNotifier.value}-$selectedApiIndex';
+
+                                    // Проверяем, есть ли данные в кэше для текущего API
+                                    String? cachedData =
+                                        apiDataCache[cacheKey];
+                                    if (cachedData != null) {
+                                      // Если данные есть в кэше, возвращаем их, оборачивая в Future
+                                      return cachedData;
+                                    } else {
+                                      // Если в кэше нет данных, загружаем их и сохраняем в кэш
+                                      String newData = await fetchMapWithRefs(
+                                          map: requestBodyCodes[paths[selectedApiIndex].pathId],
+                                          requestMapId: 'schema');
+                                      apiDataCache[cacheKey] = newData;
+                                      return newData;
+                                    }
+                                  }(),
+                                  builder: (context, snapshot) {
+                                    return snapshot.connectionState ==
+                                            ConnectionState.waiting
+                                        ? const CircularProgressIndicator()
+                                        : !snapshot.hasData
+                                            ? const Text(
+                                                'There is no Request Sample')
+                                            : HighlightView(
+                                                snapshot.data!,
+                                                language: 'json',
+                                                theme: codeTheme,
+                                                padding:
+                                                    const EdgeInsets.all(12),
+                                                textStyle: const TextStyle(
+                                                  fontFamily: 'monospace',
+                                                  fontSize: 14,
+                                                ),
+                                              );
+                                  },
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Card(
+                          child: ListTile(
+                            title: const SelectableText('Response Example'),
+                            subtitle: SizedBox(
+                              height: 300,
+                              child: SingleChildScrollView(
+                                child: FutureBuilder<String>(
+                                  future: () async {
+                                    // Ключ для кэширования, который комбинирует идентификатор проекта и индекс API
+                                    String cacheKey = 'responseExample-${selectedProjectIdNotifier.value}-$selectedApiIndex-$selectedResponse';
+                                    String? cacheResponseCode;
+
+                                    // Проверяем, есть ли данные в кэше для текущего API
+                                    String? cachedData = apiDataCache[cacheKey];
+                                    if (cachedData != null && cacheResponseCode == selectedResponse) {
+                                      // Если данные есть в кэше, возвращаем их, оборачивая в Future
+                                      return cachedData;
+                                    } else {
+                                      // Если в кэше нет данных, загружаем их и сохраняем в кэш
+                                      Map<String, dynamic> map = responseCodes[paths[selectedApiIndex].pathId];
+                                      String newData = await fetchMapWithRefs(
+                                          map: map[selectedResponse]);
+                                      apiDataCache[cacheKey] = newData;
+                                      cacheResponseCode == selectedResponse;
+                                      return newData;
+                                    }
+                                  }(),
+                                  builder: (context, snapshot) {
+                                    return snapshot.connectionState ==
+                                            ConnectionState.waiting
+                                        ? const CircularProgressIndicator()
+                                        : !snapshot.hasData
+                                            ? const Text(
+                                                'There is no Response Example')
+                                            : HighlightView(
+                                                snapshot.data!,
+                                                language: 'json',
+                                                theme: codeTheme,
+                                                padding:
+                                                    const EdgeInsets.all(12),
+                                                textStyle: const TextStyle(
+                                                  fontFamily: 'monospace',
+                                                  fontSize: 14,
+                                                ),
+                                              );
+                                  },
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -459,7 +635,8 @@ class TestCaseDetailPage extends StatelessWidget {
 class ProjectPage extends StatefulWidget {
   final String? selectedProjectId;
 
-  const ProjectPage({Key? key, required this.selectedProjectId}) : super(key: key);
+  const ProjectPage({Key? key, required this.selectedProjectId})
+      : super(key: key);
 
   @override
   _ProjectPageState createState() => _ProjectPageState();
@@ -484,10 +661,11 @@ bool updateProjectPage = false;
 bool filterEnabled = false;
 late int apiIndex;
 int selectedApiIndex = -1;
+Map<String, dynamic> responseCodes = {};
+Map<String, dynamic> requestBodyCodes = {};
 
 class _ProjectPageState extends State<ProjectPage>
     with SingleTickerProviderStateMixin {
-
   void _onSelectedProjectIdChange() {
     // Устанавливаем selectedApiIndex в -1 при каждом изменении selectedProjectId
     setState(() {
@@ -503,16 +681,21 @@ class _ProjectPageState extends State<ProjectPage>
     _tabController = TabController(length: 2, vsync: this);
     selectedProjectIdNotifier.addListener(_onSelectedProjectIdChange);
   }
+
   var pathsCollection;
   var operationsCollection;
 
   Map<String, List<PathObject>> taggedApis = {};
 
   Future<void> fetchProjectData() async {
-    final apiRef = fireStore.collection('users/${currentUser?.uid}/APIs').doc(widget.selectedProjectId);
+    final apiRef = fireStore
+        .collection('users/${currentUser?.uid}/APIs')
+        .doc(widget.selectedProjectId);
     final apiDoc = await apiRef.get();
     final apiData = apiDoc.data();
-    if (apiData != null && apiData.containsKey('info') && apiData['info'] is Map) {
+    if (apiData != null &&
+        apiData.containsKey('info') &&
+        apiData['info'] is Map) {
       projectName = apiData['info']['title'];
     }
 
@@ -525,17 +708,25 @@ class _ProjectPageState extends State<ProjectPage>
       final operationsCollection = await apiRef.collection('paths/${pathDoc.id}/operations').get();
       for (var operationDoc in operationsCollection.docs) {
         var operationData = operationDoc.data();
+
         var tags = operationData['tags'] ?? [];
         var description = operationData['description'];
         var status = operationData['status'] ?? 'inProgress';
+        Map<String, dynamic> responses = operationData['responses'] ?? {};
+        Map<String, dynamic> requestBody = operationData['requestBody']?? {};
+
+        responseCodes[pathDoc.id] = responses;
+        requestBodyCodes[pathDoc.id] = requestBody;
+
         var pathObject = PathObject(
-            method: ApiMethodTypeExtension.fromString(operationDoc.id),
-            endpoint: pathData['path'],
-            pathId: pathDoc.id,
-            operationId: operationDoc.id,
-            tags: tags,
-            description: description ?? '',
-            status: ApiStatusExtension.fromString(status),
+          method: ApiMethodTypeExtension.fromString(operationDoc.id),
+          endpoint: pathData['path'],
+          pathId: pathDoc.id,
+          operationId: operationDoc.id,
+          tags: tags,
+          description: description ?? '',
+          status: ApiStatusExtension.fromString(status),
+          responses: responses.keys.toList(),
         );
         paths.add(pathObject);
 
@@ -543,7 +734,9 @@ class _ProjectPageState extends State<ProjectPage>
           apisWithoutTag.add(pathObject);
         } else {
           tags.forEach((tag) {
-            tempTaggedApis.putIfAbsent(tag.toString(), () => []).add(pathObject);
+            tempTaggedApis
+                .putIfAbsent(tag.toString(), () => [])
+                .add(pathObject);
           });
         }
       }
@@ -559,7 +752,6 @@ class _ProjectPageState extends State<ProjectPage>
   }
 
   late TabController _tabController;
-
 
   int selectedTestCaseIndex = -1;
 
@@ -627,13 +819,14 @@ class _ProjectPageState extends State<ProjectPage>
                               padding: const EdgeInsets.fromLTRB(8, 8, 0, 0),
                               child: ElevatedButton(
                                 onPressed: () {
-                                  selectedProjectIdNotifier.value == null ? ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a project at first'))) :
-                                  showDialog(
-                                    context: context,
-                                    builder: (BuildContext context) {
-                                      return AddApiDialog();
-                                    },
-                                  );
+                                  selectedProjectIdNotifier.value == null
+                                      ? ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a project at first')))
+                                      : showDialog(
+                                          context: context,
+                                          builder: (BuildContext context) {
+                                            return AddApiDialog();
+                                          },
+                                        );
                                 },
                                 child: const Text('Add API'),
                               ),
@@ -644,10 +837,15 @@ class _ProjectPageState extends State<ProjectPage>
                             child: PopupMenuButton<FilterOption>(
                               icon: const Icon(Icons.filter_list),
                               onSelected: (FilterOption result) {
-                                selectedProjectIdNotifier.value == null ? ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a project at first'))) : currentFilter.value = result;
+                                selectedProjectIdNotifier.value == null
+                                    ? ScaffoldMessenger.of(context)
+                                        .showSnackBar(const SnackBar(
+                                            content: Text(
+                                                'Please select a project at first')))
+                                    : currentFilter.value = result;
                               },
                               itemBuilder: (BuildContext context) =>
-                              <PopupMenuEntry<FilterOption>>[
+                                  <PopupMenuEntry<FilterOption>>[
                                 const PopupMenuItem<FilterOption>(
                                   value: FilterOption.getByMethodGET,
                                   child: Text('GET'),
@@ -694,154 +892,200 @@ class _ProjectPageState extends State<ProjectPage>
                         ],
                       ),
                       const Divider(),
-                      selectedProjectIdNotifier.value == null ? const Expanded(child: Center(child: Text('Select a project'))) : ValueListenableBuilder<FilterOption?>(
-                        valueListenable: currentFilter,
-                        builder: (context, value, child) {
-                          List<PathObject> filteredApis = paths;
-                          switch (value) {
-                            case FilterOption.getByMethodGET:
-                              filterEnabled = true;
-                              filteredApis = filteredApis
-                                  .where((api) =>
-                              api.method.name.toString() == "GET")
-                                  .toList();
-                              break;
-                            case FilterOption.getByMethodPOST:
-                              filterEnabled = true;
-                              filteredApis = filteredApis
-                                  .where((api) =>
-                              api.method.name.toString() == "POST")
-                                  .toList();
-                              break;
-                            case FilterOption.getByMethodPUT:
-                              filterEnabled = true;
-                              filteredApis = filteredApis
-                                  .where((api) =>
-                              api.method.name.toString() == "PUT")
-                                  .toList();
-                              break;
-                            case FilterOption.getByMethodDELETE:
-                              filterEnabled = true;
-                              filteredApis = filteredApis
-                                  .where((api) =>
-                              api.method.name.toString() == "DELETE")
-                                  .toList();
-                              break;
-                            case FilterOption.getByMethodPATCH:
-                              filterEnabled = true;
-                              filteredApis = filteredApis
-                                  .where((api) =>
-                              api.method.name.toString() == "PATCH")
-                                  .toList();
-                              break;
-                            case FilterOption.getByMethodOPTIONS:
-                              filterEnabled = true;
-                              filteredApis = filteredApis
-                                  .where((api) =>
-                              api.method.name.toString() == "OPTIONS")
-                                  .toList();
-                              break;
-                            case FilterOption.getByMethodHEAD:
-                              filterEnabled = true;
-                              filteredApis = filteredApis
-                                  .where((api) =>
-                              api.method.name.toString() == "HEAD")
-                                  .toList();
-                              break;
-                            case FilterOption.disabled:
-                              filterEnabled = false;
-                              break;
-                            case FilterOption.orderByEndpoint:
-                              filterEnabled = true;
-                              sortApisByEndpoint(filteredApis);
-                              break;
-                            case FilterOption.orderByStatus:
-                              filterEnabled = true;
-                              filteredApis.sort((a, b) =>
-                                  a.status.index.compareTo(b.status.index));
-                              break;
-                            default: filterEnabled = false;
-                            break;
-                          }
-                          // Возвращаем отфильтрованный и отсортированный список
-                          return ValueListenableBuilder<String?>(
-                              valueListenable: selectedProjectIdNotifier,
-                              builder: (context, selectedProjectId, child) {
-                                if (selectedProjectId != null && updateProjectPage) {
-                                  fetchProjectData(); // Асинхронно загружаем данные
-                                  // Центрирование CircularProgressIndicator
-                                  return const Expanded(
-                                    child: Center(
-                                      child: CircularProgressIndicator(),
-                                    ),
-                                  );
+                      selectedProjectIdNotifier.value == null
+                          ? const Expanded(
+                              child: Center(child: Text('Select a project')))
+                          : ValueListenableBuilder<FilterOption?>(
+                              valueListenable: currentFilter,
+                              builder: (context, value, child) {
+                                List<PathObject> filteredApis = paths;
+                                switch (value) {
+                                  case FilterOption.getByMethodGET:
+                                    filterEnabled = true;
+                                    filteredApis = filteredApis
+                                        .where((api) =>
+                                            api.method.name.toString() == "GET")
+                                        .toList();
+                                    break;
+                                  case FilterOption.getByMethodPOST:
+                                    filterEnabled = true;
+                                    filteredApis = filteredApis
+                                        .where((api) =>
+                                            api.method.name.toString() ==
+                                            "POST")
+                                        .toList();
+                                    break;
+                                  case FilterOption.getByMethodPUT:
+                                    filterEnabled = true;
+                                    filteredApis = filteredApis
+                                        .where((api) =>
+                                            api.method.name.toString() == "PUT")
+                                        .toList();
+                                    break;
+                                  case FilterOption.getByMethodDELETE:
+                                    filterEnabled = true;
+                                    filteredApis = filteredApis
+                                        .where((api) =>
+                                            api.method.name.toString() ==
+                                            "DELETE")
+                                        .toList();
+                                    break;
+                                  case FilterOption.getByMethodPATCH:
+                                    filterEnabled = true;
+                                    filteredApis = filteredApis
+                                        .where((api) =>
+                                            api.method.name.toString() ==
+                                            "PATCH")
+                                        .toList();
+                                    break;
+                                  case FilterOption.getByMethodOPTIONS:
+                                    filterEnabled = true;
+                                    filteredApis = filteredApis
+                                        .where((api) =>
+                                            api.method.name.toString() ==
+                                            "OPTIONS")
+                                        .toList();
+                                    break;
+                                  case FilterOption.getByMethodHEAD:
+                                    filterEnabled = true;
+                                    filteredApis = filteredApis
+                                        .where((api) =>
+                                            api.method.name.toString() ==
+                                            "HEAD")
+                                        .toList();
+                                    break;
+                                  case FilterOption.disabled:
+                                    filterEnabled = false;
+                                    break;
+                                  case FilterOption.orderByEndpoint:
+                                    filterEnabled = true;
+                                    sortApisByEndpoint(filteredApis);
+                                    break;
+                                  case FilterOption.orderByStatus:
+                                    filterEnabled = true;
+                                    filteredApis.sort((a, b) => a.status.index
+                                        .compareTo(b.status.index));
+                                    break;
+                                  default:
+                                    filterEnabled = false;
+                                    break;
                                 }
-                                // Возвращаем список API, когда данные доступны
-                                return !filterEnabled ? Expanded(
-                                  child: ListView.builder(
-                                    itemCount: taggedApis.keys.length,
-                                    itemBuilder: (context, index) {
-                                      String tag = taggedApis.keys.elementAt(index);
-                                      List<PathObject> apis = taggedApis[tag]!;
+                                // Возвращаем отфильтрованный и отсортированный список
+                                return ValueListenableBuilder<String?>(
+                                    valueListenable: selectedProjectIdNotifier,
+                                    builder:
+                                        (context, selectedProjectId, child) {
+                                      if (selectedProjectId != null &&
+                                          updateProjectPage) {
+                                        fetchProjectData(); // Асинхронно загружаем данные
+                                        // Центрирование CircularProgressIndicator
+                                        return const Expanded(
+                                          child: Center(
+                                            child: CircularProgressIndicator(),
+                                          ),
+                                        );
+                                      }
+                                      // Возвращаем список API, когда данные доступны
+                                      return !filterEnabled
+                                          ? Expanded(
+                                              child: ListView.builder(
+                                                itemCount:
+                                                    taggedApis.keys.length,
+                                                itemBuilder: (context, index) {
+                                                  String tag = taggedApis.keys
+                                                      .elementAt(index);
+                                                  List<PathObject> apis =
+                                                      taggedApis[tag]!;
 
-                                      return ExpansionTile(
-                                        title: Text(tag),
-                                        children: apis.map((api) => ListTile(
-                                          trailing: api.status == ApiStatus.done
-                                              ? const Icon(Icons.check)
-                                              : api.status == ApiStatus.notDone
-                                              ? const Icon(Icons.not_interested)
-                                              : null,
-                                          title: Text('${api.method.name} ${api.endpoint}'),
-                                          onTap: () => setState(() {
-                                            // Находим индекс api в общем списке paths
-                                            int apiIndex = paths.indexWhere((path) =>
-                                            path.method == api.method && path.endpoint == api.endpoint);
-                                            // Обновляем selectedApiIndex если объект найден
-                                            if (apiIndex != -1) {
-                                              setState(() {
-                                                selectedApiIndex = apiIndex;
-                                                descriptionController.text = paths[apiIndex].description;
-                                              });
-                                            }
-                                            print(paths[selectedApiIndex].status.name + paths[selectedApiIndex].endpoint);
-                                          }),
-                                        )).toList(),
-                                      );
-                                    },
-                                  ),
-                                ) :  Expanded(
-                                  child: ListView.builder(
-                                    itemCount: filteredApis.length,
-                                    itemBuilder: (context, index) {
-                                      PathObject api = filteredApis[index];
-                                      return ListTile(
-                                        trailing: api.status == ApiStatus.done
-                                            ? const Icon(Icons.check)
-                                            : api.status == ApiStatus.notDone
-                                            ? const Icon(Icons.not_interested)
-                                            : null,
-                                        title: Text('${api.method.name} ${api.endpoint}'),
-                                        onTap: () => setState(() {
-                                          // Находим индекс api в общем списке paths
-                                          apiIndex = paths.indexWhere((path) =>
-                                          path.method == api.method && path.endpoint == api.endpoint);
-                                          // Обновляем selectedApiIndex если объект найден
-                                          if (apiIndex != -1) {
-                                            setState(() {
-                                              selectedApiIndex = apiIndex;
-                                            });
-                                          }
-                                          print(paths[selectedApiIndex].status.name + paths[selectedApiIndex].endpoint);
-                                        }),
-                                      );
-                                    },
-                                  ),
-                                );
-                              }
-                          );
-                        },
-                      ),
+                                                  return ExpansionTile(
+                                                    title: Text(tag),
+                                                    children: apis
+                                                        .map((api) => ListTile(
+                                                              trailing: api.status ==
+                                                                      ApiStatus
+                                                                          .done
+                                                                  ? const Icon(
+                                                                      Icons
+                                                                          .check)
+                                                                  : api.status ==
+                                                                          ApiStatus
+                                                                              .notDone
+                                                                      ? const Icon(
+                                                                          Icons
+                                                                              .not_interested)
+                                                                      : null,
+                                                              title: Text(
+                                                                  '${api.method.name} ${api.endpoint}'),
+                                                              onTap: () =>
+                                                                  setState(() {
+                                                                // Находим индекс api в общем списке paths
+                                                                int apiIndex = paths.indexWhere((path) =>
+                                                                    path.method ==
+                                                                        api
+                                                                            .method &&
+                                                                    path.endpoint ==
+                                                                        api.endpoint);
+                                                                // Обновляем selectedApiIndex если объект найден
+                                                                if (apiIndex !=
+                                                                    -1) {
+                                                                  setState(() {
+                                                                    selectedApiIndex =
+                                                                        apiIndex;
+                                                                    descriptionController
+                                                                        .text = paths[
+                                                                            apiIndex]
+                                                                        .description;
+                                                                  });
+                                                                }
+                                                              }),
+                                                            ))
+                                                        .toList(),
+                                                  );
+                                                },
+                                              ),
+                                            )
+                                          : Expanded(
+                                              child: ListView.builder(
+                                                itemCount: filteredApis.length,
+                                                itemBuilder: (context, index) {
+                                                  PathObject api =
+                                                      filteredApis[index];
+                                                  return ListTile(
+                                                    trailing: api.status ==
+                                                            ApiStatus.done
+                                                        ? const Icon(
+                                                            Icons.check)
+                                                        : api.status ==
+                                                                ApiStatus
+                                                                    .notDone
+                                                            ? const Icon(Icons
+                                                                .not_interested)
+                                                            : null,
+                                                    title: Text(
+                                                        '${api.method.name} ${api.endpoint}'),
+                                                    onTap: () => setState(() {
+                                                      // Находим индекс api в общем списке paths
+                                                      apiIndex = paths
+                                                          .indexWhere((path) =>
+                                                              path.method ==
+                                                                  api.method &&
+                                                              path.endpoint ==
+                                                                  api.endpoint);
+                                                      // Обновляем selectedApiIndex если объект найден
+                                                      if (apiIndex != -1) {
+                                                        setState(() {
+                                                          selectedApiIndex =
+                                                              apiIndex;
+                                                        });
+                                                      }
+                                                    }),
+                                                  );
+                                                },
+                                              ),
+                                            );
+                                    });
+                              },
+                            ),
                     ],
                   ),
                 ),
@@ -849,7 +1093,9 @@ class _ProjectPageState extends State<ProjectPage>
               Align(
                 alignment: Alignment.centerLeft,
                 child: IconButton(
-                  icon: Icon(_isListVisible ? Icons.arrow_back_ios_new : Icons.arrow_forward_ios_outlined),
+                  icon: Icon(_isListVisible
+                      ? Icons.arrow_back_ios_new
+                      : Icons.arrow_forward_ios_outlined),
                   onPressed: () {
                     setState(() {
                       _isListVisible = !_isListVisible;
@@ -859,11 +1105,15 @@ class _ProjectPageState extends State<ProjectPage>
               ),
               Expanded(
                 flex: 5,
-                child: selectedProjectIdNotifier.value == null ? const Center(child: Text('Please select a project to show this content')) : selectedApiIndex == -1
+                child: selectedProjectIdNotifier.value == null
                     ? const Center(
-                    child: Text(
-                        'Select an object from list to view details'))
-                    : ApiDetailPage(api: paths[selectedApiIndex]),
+                        child: Text(
+                            'Please select a project to show this content'))
+                    : selectedApiIndex == -1
+                        ? const Center(
+                            child: Text(
+                                'Select an object from list to view details'))
+                        : ApiDetailPage(api: paths[selectedApiIndex]),
               ),
             ],
           ),
@@ -920,10 +1170,10 @@ class _ProjectPageState extends State<ProjectPage>
                   flex: 5,
                   child: selectedTestCaseIndex == -1
                       ? const Center(
-                      child: Text(
-                          'Select an object from list to view details'))
+                          child: Text(
+                              'Select an object from list to view details'))
                       : TestCaseDetailPage(
-                      testCase: testCases[selectedTestCaseIndex])),
+                          testCase: testCases[selectedTestCaseIndex])),
             ],
           ),
         ],
