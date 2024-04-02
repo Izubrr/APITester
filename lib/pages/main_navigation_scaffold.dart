@@ -29,10 +29,8 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold> with Ti
 
   Future<List<ApiDestination>> fetchApiTitlesAndIcons() async {
     _isLoading = true;
-    print('[1] ${DateTime.now().toString()}');
     try {
       final apiCollection = await fireStore.collection('users/${currentUser?.uid}/APIs').get();
-      print('[2] ${DateTime.now().toString()}');
       for (var doc in apiCollection.docs) {
         final data = doc.data();
         if (data.containsKey('info') && data['info'] is Map) {
@@ -54,13 +52,12 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold> with Ti
           );
         }
       }
-      print('[3] ${DateTime.now().toString()}');
       setState(() {
         _isLoading = false;
         navRailDestinations;
       });
     } catch (e) {
-      print("Error fetching API titles and icons: $e");
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error fetching API titles and icons: $e')));
     }
     return navRailDestinations.value;
   }
@@ -70,6 +67,8 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold> with Ti
     super.initState();
     fetchApiTitlesAndIcons();
   }
+
+  int? _selectedIndex;
 
   @override
   Widget build(BuildContext context) {
@@ -90,11 +89,12 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold> with Ti
                     ),
                     onDestinationSelected: (index) {
                       setState(() {
+                        _selectedIndex = index;
                         selectedProjectIdNotifier.value = value[index].id; // Сохранение ID выбранного API
                         updateProjectPage = true;
                       });
                     },
-                    selectedIndex: null,
+                    selectedIndex: _selectedIndex,
                     labelType: labelType,
                     leading: Padding(
                       padding: const EdgeInsets.all(8.0),

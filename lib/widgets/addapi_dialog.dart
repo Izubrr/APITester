@@ -86,7 +86,7 @@ class _AddApiDialogState extends State<AddApiDialog> {
             height: 100,
             child: ElevatedButton(
               style: ButtonStyle(
-                minimumSize: MaterialStateProperty.all(Size(100, double.infinity)),
+                minimumSize: MaterialStateProperty.all(const Size(100, double.infinity)),
                 shape: MaterialStateProperty.all(
                   RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),

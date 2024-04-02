@@ -1,7 +1,8 @@
 import 'dart:convert';
 import 'dart:math';
 import 'package:diplom/main.dart';
-import 'package:diplom/widgets/request-response_example.dart';
+import 'package:diplom/pages/api_detail_page.dart';
+import 'package:diplom/pages/test_case_detail_page.dart';
 import 'package:flutter/material.dart';
 import 'package:diplom/widgets/addapi_dialog.dart';
 import 'package:flutter/src/foundation/change_notifier.dart';
@@ -122,6 +123,7 @@ class PathObject {
   String operationId;
   Map<String, dynamic> requestBody;
   List<dynamic> responses;
+  List<String> fetchedTestCaseId;
 
   PathObject(
       {required this.method,
@@ -133,503 +135,14 @@ class PathObject {
       this.summary = '',
       this.description = '',
       this.requestBody = const {'1': "Tom", '2': "Bob", '3': "Sam"},
+      this.fetchedTestCaseId = const [],
       this.responses = const []});
 }
 
-Map<String, dynamic> testCases = {'1': "Tom", '2': "Bob", '3': "Sam"};
-
 Map<String, String> apiDataCache = {};
 
-// Страница деталей для API
-class ApiDetailPage extends StatefulWidget {
-  final PathObject api;
-
-  const ApiDetailPage({Key? key, required this.api}) : super(key: key);
-
-  @override
-  State<ApiDetailPage> createState() => _ApiDetailPageState();
-}
-
-class _ApiDetailPageState extends State<ApiDetailPage> {
-  Color getStatusColor() {
-    switch (widget.api.status) {
-      case ApiStatus.notDone:
-        return getColorScheme(Colors.red).primaryContainer;
-      case ApiStatus.inProgress:
-        return Colors.transparent;
-      case ApiStatus.done:
-        return getColorScheme(Colors.green).primaryContainer;
-      default:
-        return getColorScheme(Colors.green).primaryContainer;
-    }
-  }
-
-  ColorScheme getColorScheme(Color color) {
-    ColorScheme colorScheme = ColorScheme.fromSeed(
-      seedColor: color,
-      brightness: Theme.of(context).brightness,
-    );
-    return colorScheme;
-  }
-
-  Future<String> fetchMapWithRefs({
-    String? refPath,
-    Map<String, dynamic>? map,
-    String? parentMapId,
-    String? requestMapId,
-  }) async {
-    assert(refPath != null || map != null, 'Must provide either a refPath or a map');
-    assert(!(refPath != null && map != null), 'Cannot provide both a refPath and a map');
-    assert(refPath == null || parentMapId != null, 'Must provide parentMapId if refPath is given');
-
-    Map<String, dynamic>? requestMap;
-
-    // Если предоставлен refPath, загрузите Map из Firestore
-    if (refPath != null) {
-      var operationDoc = await fireStore.doc(refPath).get();
-      var operationData = operationDoc.data();
-      requestMap = operationData?[parentMapId] as Map<String, dynamic>?;
-    } else {
-      // Если предоставлен Map, используйте его напрямую
-      requestMap = map;
-    }
-
-    if (requestMap == null) {
-      throw Exception('Map not found at the given path or map is null');
-    }
-
-    var resultMap = await resolveRefsInMap(requestMap, mapId: requestMapId);
-    var result = const JsonEncoder.withIndent('  ').convert(resultMap);
-    return result;
-  }
-
-
-  Future<Map<String, dynamic>> resolveRefsInMap(Map<String, dynamic> map, {String? mapId = ''}) async {
-    Future<dynamic> resolve(dynamic current) async {
-      if (current is Map<String, dynamic>) {
-        Map<String, dynamic> resolvedMap = {};
-        for (var key in current.keys) {
-          var value = current[key];
-          resolvedMap[key] = await resolve(value);
-        }
-        return resolvedMap;
-      } else if (current is List) {
-        List<dynamic> resolvedList = [];
-        for (var item in current) {
-          resolvedList.add(await resolve(item));
-        }
-        return resolvedList as dynamic;
-      } else if (current is String && current.startsWith('#/')) {
-        // Обработка $ref ссылок, предполагается, что строка начинается с '#/'
-        var refPath = current.replaceAll('#/', 'users/${currentUser?.uid}/APIs/${selectedProjectIdNotifier.value}/');
-        List<String> refParts = refPath.split('/');
-
-        // Корректируем для правильного пути и ID документа
-        refPath = refParts.sublist(0, refParts.length - 2).join('/');
-        String refDocId = refParts[refParts.length - 2];
-        String refMapId = refParts.last;
-
-        // Получаем ссылочный документ
-        final collection = await fireStore.collection(refPath).doc(refDocId).get();
-        final collectionData = collection.data();
-
-        // Предполагаем, что данные ссылки вложены в документ
-        Map<String, dynamic>? data = collectionData?[refMapId] as Map<String, dynamic>?;
-        if (data != null) {
-          return await resolve(data);
-        } else {
-          return current; // Возвращаем текущую строку, если ссылка не разрешена
-        }
-      } else {
-        return current; // Возвращаем текущее значение без изменений, если оно не Map и не List
-      }
-    }
-
-    var result = await resolve(map);
-    if (mapId != null && mapId.isNotEmpty) {
-      result = extractValueByKey(result, mapId);
-    }
-    return result as Map<String, dynamic>;
-  }
-
-
-  dynamic extractValueByKey(Map<String, dynamic> map, String key) {
-    dynamic value;
-    void searchMap(Map<String, dynamic> currentMap) {
-      if (currentMap.containsKey(key)) {
-        value = currentMap[key];
-        return;
-      }
-      for (var entry in currentMap.entries) {
-        if (entry.value is Map<String, dynamic>) {
-          searchMap(entry.value);
-          if (value != null) return;
-        }
-      }
-    }
-
-    searchMap(map);
-    return value;
-  }
-
-  late String selectedResponse;
-
-  @override
-  void initState() {
-    super.initState();
-    if (paths[selectedApiIndex].responses.isNotEmpty) {
-      selectedResponse = paths[selectedApiIndex].responses.first;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final codeTheme = isDarkMode ? monokaiSublimeTheme : githubTheme;
-    return Align(
-      alignment: Alignment.topCenter,
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Column(
-            children: [
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(0, 0, 0, 7),
-                        child: SelectableText('${widget.api.method.name}  ',
-                            style: Theme.of(context).textTheme.titleLarge),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(0, 0, 0, 7),
-                        child: SelectableText(widget.api.endpoint,
-                            style: Theme.of(context).textTheme.titleMedium),
-                      ),
-                      const VerticalDivider(),
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
-                          child: TextField(
-                            controller: descriptionController,
-                            onEditingComplete: () async {
-                              // Проверка на валидность выбранного индекса API
-                              if (selectedApiIndex >= 0 &&
-                                  selectedApiIndex < paths.length) {
-                                try {
-                                  // Обновление поля description для конкретного API в Firestore
-                                  await fireStore
-                                      .collection(
-                                          'users/${currentUser?.uid}/APIs/${selectedProjectIdNotifier.value}/paths/${paths[selectedApiIndex].pathId}/operations')
-                                      .doc(paths[selectedApiIndex]
-                                          .operationId) // ID документа API
-                                      .update({
-                                    'description': descriptionController.text
-                                  });
-
-                                  // Обновление локальной копии после успешного обновления Firestore
-                                  setState(() {
-                                    paths[selectedApiIndex].description =
-                                        descriptionController.text;
-                                  });
-
-                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Description updated successfully')));
-                                } catch (e) {
-                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error updating description: $e')));
-                                }
-                              }
-                            },
-                            decoration: const InputDecoration(
-                              hintText: 'Description',
-                            ),
-                          ),
-                        ),
-                      ),
-                      const VerticalDivider(),
-                      Container(
-                        decoration: BoxDecoration(
-                            color: getStatusColor(),
-                            borderRadius:
-                                const BorderRadius.all(Radius.circular(12))),
-                        child: DropdownButton<ApiStatus>(
-                          focusColor: Colors.transparent,
-                          isDense: true,
-                          underline: const Text(''),
-                          padding: const EdgeInsets.all(5),
-                          borderRadius: BorderRadius.circular(12.0),
-                          value: paths[selectedApiIndex].status,
-                          onChanged: (ApiStatus? newValue) async {
-                            // Проверка на валидность выбранного индекса API
-                            if (paths[selectedApiIndex].status != newValue) {
-                              try {
-                                // Обновление поля description для конкретного API в Firestore
-                                await fireStore
-                                    .collection(
-                                        'users/${currentUser?.uid}/APIs/${selectedProjectIdNotifier.value}/paths/${paths[selectedApiIndex].pathId}/operations')
-                                    .doc(paths[selectedApiIndex]
-                                        .operationId) // ID документа API
-                                    .update({
-                                  'status': ApiStatusExtension.convertToString(
-                                      newValue!)
-                                });
-
-                                // Обновление локальной копии после успешного обновления Firestore
-                                setState(() {
-                                  paths[selectedApiIndex].status = newValue;
-                                });
-                                //selectedProjectIdNotifier.notifyListeners();
-                              } catch (e) {
-                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error updating status: $e')));
-                              }
-                            }
-                          },
-                          items: const [
-                            DropdownMenuItem(
-                              value: ApiStatus.notDone,
-                              child: Text('ToDo'),
-                            ),
-                            DropdownMenuItem(
-                              value: ApiStatus.inProgress,
-                              child: Text('In Progress'),
-                            ),
-                            DropdownMenuItem(
-                              value: ApiStatus.done,
-                              child: Text('Done'),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: Card(
-                      child: ListTile(
-                        title: const Text('JSON Scheme'),
-                        subtitle: SizedBox(
-                          height: 300,
-                          child: SingleChildScrollView(
-                            child: Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: FutureBuilder<String>(
-                                future: () async {
-                                  // Ключ для кэширования, который комбинирует идентификатор проекта и индекс API
-                                  String cacheKey = 'schema-${selectedProjectIdNotifier.value}-$selectedApiIndex';
-
-                                  // Проверяем, есть ли данные в кэше для текущего API
-                                  String? cachedData = apiDataCache[cacheKey];
-                                  if (cachedData != null) {
-                                    // Если данные есть в кэше, возвращаем их, оборачивая в Future
-                                    return cachedData;
-                                  } else {
-                                    // Если в кэше нет данных, загружаем их и сохраняем в кэш
-                                    String newData = await fetchMapWithRefs(
-                                        map: requestBodyCodes[paths[selectedApiIndex].pathId],
-                                        requestMapId: 'schema');
-                                    apiDataCache[cacheKey] = newData;
-                                    return newData;
-                                  }
-                                }(),
-                                builder: (context, snapshot) {
-                                  return snapshot.connectionState ==
-                                          ConnectionState.waiting
-                                      ? const CircularProgressIndicator()
-                                      : !snapshot.hasData
-                                          ? const Text(
-                                              'There is no JSON Scheme')
-                                          : HighlightView(
-                                              snapshot.data!,
-                                              language: 'json',
-                                              theme: codeTheme,
-                                              padding: const EdgeInsets.all(12),
-                                              textStyle: const TextStyle(
-                                                fontFamily: 'monospace',
-                                                fontSize: 14,
-                                              ),
-                                            );
-                                },
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const Expanded(
-                    child: Card(
-                      child: ListTile(
-                        title: Text('Linked Test Cases'),
-                        subtitle: SizedBox(
-                            height: 300,
-                            child:
-                                Text('Left - light theme; Right - dark theme')),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Align(
-                      alignment: Alignment.topLeft,
-                      child: SegmentedButton<String>(
-                        segments: paths[selectedApiIndex].responses.map((key) {
-                          return ButtonSegment<String>(
-                            value: key,
-                            label: Text(key),
-                          );
-                        }).toList(),
-                        selected: {selectedResponse},
-                        onSelectionChanged: (newSelection) {
-                          setState(() {
-                            selectedResponse = newSelection.first;
-                          });
-                        },
-                      ),
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Card(
-                          child: ListTile(
-                            title: const Text('Request Sample'),
-                            subtitle: SizedBox(
-                              height: 300,
-                              child: SingleChildScrollView(
-                                child: FutureBuilder<String>(
-                                  future: () async {
-                                    // Ключ для кэширования, который комбинирует идентификатор проекта и индекс API
-                                    String cacheKey = 'requestExample-${selectedProjectIdNotifier.value}-$selectedApiIndex';
-
-                                    // Проверяем, есть ли данные в кэше для текущего API
-                                    String? cachedData =
-                                        apiDataCache[cacheKey];
-                                    if (cachedData != null) {
-                                      // Если данные есть в кэше, возвращаем их, оборачивая в Future
-                                      return cachedData;
-                                    } else {
-                                      // Если в кэше нет данных, загружаем их и сохраняем в кэш
-                                      String newData = await fetchMapWithRefs(
-                                          map: requestBodyCodes[paths[selectedApiIndex].pathId],
-                                          requestMapId: 'schema');
-                                      apiDataCache[cacheKey] = newData;
-                                      return newData;
-                                    }
-                                  }(),
-                                  builder: (context, snapshot) {
-                                    return snapshot.connectionState ==
-                                            ConnectionState.waiting
-                                        ? const CircularProgressIndicator()
-                                        : !snapshot.hasData
-                                            ? const Text(
-                                                'There is no Request Sample')
-                                            : HighlightView(
-                                                snapshot.data!,
-                                                language: 'json',
-                                                theme: codeTheme,
-                                                padding:
-                                                    const EdgeInsets.all(12),
-                                                textStyle: const TextStyle(
-                                                  fontFamily: 'monospace',
-                                                  fontSize: 14,
-                                                ),
-                                              );
-                                  },
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Card(
-                          child: ListTile(
-                            title: const SelectableText('Response Example'),
-                            subtitle: SizedBox(
-                              height: 300,
-                              child: SingleChildScrollView(
-                                child: FutureBuilder<String>(
-                                  future: () async {
-                                    // Ключ для кэширования, который комбинирует идентификатор проекта и индекс API
-                                    String cacheKey = 'responseExample-${selectedProjectIdNotifier.value}-$selectedApiIndex-$selectedResponse';
-                                    String? cacheResponseCode;
-
-                                    // Проверяем, есть ли данные в кэше для текущего API
-                                    String? cachedData = apiDataCache[cacheKey];
-                                    if (cachedData != null && cacheResponseCode == selectedResponse) {
-                                      // Если данные есть в кэше, возвращаем их, оборачивая в Future
-                                      return cachedData;
-                                    } else {
-                                      // Если в кэше нет данных, загружаем их и сохраняем в кэш
-                                      Map<String, dynamic> map = responseCodes[paths[selectedApiIndex].pathId];
-                                      String newData = await fetchMapWithRefs(
-                                          map: map[selectedResponse]);
-                                      apiDataCache[cacheKey] = newData;
-                                      cacheResponseCode == selectedResponse;
-                                      return newData;
-                                    }
-                                  }(),
-                                  builder: (context, snapshot) {
-                                    return snapshot.connectionState ==
-                                            ConnectionState.waiting
-                                        ? const CircularProgressIndicator()
-                                        : !snapshot.hasData
-                                            ? const Text(
-                                                'There is no Response Example')
-                                            : HighlightView(
-                                                snapshot.data!,
-                                                language: 'json',
-                                                theme: codeTheme,
-                                                padding:
-                                                    const EdgeInsets.all(12),
-                                                textStyle: const TextStyle(
-                                                  fontFamily: 'monospace',
-                                                  fontSize: 14,
-                                                ),
-                                              );
-                                  },
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// Страница деталей для тестового случая
-class TestCaseDetailPage extends StatelessWidget {
-  final String testCase;
-
-  const TestCaseDetailPage({Key? key, required this.testCase})
-      : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text('Test Case Detail: $testCase'),
-    );
-  }
-}
+late ValueNotifier<String> selectedResponseNotifier =
+    ValueNotifier(paths[selectedApiIndex].responses.first);
 
 // Главная страница проекта с вкладками API и тестовых случаев
 class ProjectPage extends StatefulWidget {
@@ -657,12 +170,18 @@ enum FilterOption {
 
 String projectName = 'Project Name';
 List<PathObject> paths = [];
+List<Folder> testCaseFolders = [];
+List<TestCase> testCases = [];
 bool updateProjectPage = false;
 bool filterEnabled = false;
-late int apiIndex;
 int selectedApiIndex = -1;
+int selectedTestFolderIndex = -1;
+ValueNotifier<int> selectedTestCaseIndex = ValueNotifier(-1);
 Map<String, dynamic> responseCodes = {};
 Map<String, dynamic> requestBodyCodes = {};
+bool isFolderEditing = false;
+bool isTestCaseEditing = false;
+ValueNotifier<String> testCaseListCurrent = ValueNotifier('folder');
 
 class _ProjectPageState extends State<ProjectPage>
     with SingleTickerProviderStateMixin {
@@ -670,6 +189,8 @@ class _ProjectPageState extends State<ProjectPage>
     // Устанавливаем selectedApiIndex в -1 при каждом изменении selectedProjectId
     setState(() {
       selectedApiIndex = -1;
+      selectedTestCaseIndex.value = -1;
+      testCaseFolders = [];
       paths = [];
       apiDataCache = {};
     });
@@ -682,12 +203,11 @@ class _ProjectPageState extends State<ProjectPage>
     selectedProjectIdNotifier.addListener(_onSelectedProjectIdChange);
   }
 
-  var pathsCollection;
-  var operationsCollection;
-
   Map<String, List<PathObject>> taggedApis = {};
 
   Future<void> fetchProjectData() async {
+    List<String> fetches;
+
     final apiRef = fireStore
         .collection('users/${currentUser?.uid}/APIs')
         .doc(widget.selectedProjectId);
@@ -699,13 +219,44 @@ class _ProjectPageState extends State<ProjectPage>
       projectName = apiData['info']['title'];
     }
 
+    final testcasefolders = await apiRef.collection('testcasefolders').get();
+    for (var folderDoc in testcasefolders.docs) {
+      final folderData = folderDoc.data();
+      final cases = await apiRef.collection('testcasefolders/${folderDoc.id}/testcases').get();
+
+      // Если подколлекция существует и содержит документы, заполняем список testCases
+      if (cases.docs.isNotEmpty) {
+        for (var caseDoc in cases.docs) {
+          final caseData = caseDoc.data();
+          fetches = List<String>.from(caseData['fetchedApisID'] ?? []);
+          testCases.add(
+              TestCase(
+                name: caseData['name'],
+                url: caseData['url'] ?? '',
+                description: caseData['description'] ?? '',
+                fetchedApisID: fetches,
+                docId: caseDoc.id,
+              )
+          );
+        }
+      }
+      testCaseFolders.add(
+          Folder(
+            name: folderData['title'],
+            docId: folderDoc.id,
+            testCases: testCases,
+          )
+      );
+    }
+
     Map<String, List<PathObject>> tempTaggedApis = {};
     List<PathObject> apisWithoutTag = [];
 
-    final pathsCollection = await apiRef.collection('paths').get();
+    var pathsCollection = await apiRef.collection('paths').get();
     for (var pathDoc in pathsCollection.docs) {
       final pathData = pathDoc.data();
-      final operationsCollection = await apiRef.collection('paths/${pathDoc.id}/operations').get();
+      var operationsCollection =
+          await apiRef.collection('paths/${pathDoc.id}/operations').get();
       for (var operationDoc in operationsCollection.docs) {
         var operationData = operationDoc.data();
 
@@ -713,7 +264,7 @@ class _ProjectPageState extends State<ProjectPage>
         var description = operationData['description'];
         var status = operationData['status'] ?? 'inProgress';
         Map<String, dynamic> responses = operationData['responses'] ?? {};
-        Map<String, dynamic> requestBody = operationData['requestBody']?? {};
+        Map<String, dynamic> requestBody = operationData['requestBody'] ?? {};
 
         responseCodes[pathDoc.id] = responses;
         requestBodyCodes[pathDoc.id] = requestBody;
@@ -753,8 +304,6 @@ class _ProjectPageState extends State<ProjectPage>
 
   late TabController _tabController;
 
-  int selectedTestCaseIndex = -1;
-
   final ValueNotifier<FilterOption?> currentFilter = ValueNotifier(null);
 
   int naturalSortComparator(String a, String b) {
@@ -786,7 +335,46 @@ class _ProjectPageState extends State<ProjectPage>
     apis.sort((a, b) => naturalSortComparator(a.endpoint, b.endpoint));
   }
 
-  bool _isListVisible = true;
+  bool _isApiListVisible = true;
+  bool _isCaseListVisible = true;
+
+  void renameItem(String docId, String collectionPath, Map<String, dynamic> newData, Function update) async {
+    try {
+      // Обращение к документу в Firestore и обновление поля 'name'
+      await fireStore
+          .collection(collectionPath)
+          .doc(docId) // Используйте идентификатор документа папки
+          .update(newData);
+
+      // Если обновление в Firestore прошло успешно, обновляем имя в локальном списке
+      setState(() {
+        update;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Failed to rename item: $e'),
+      ));
+    }
+  }
+
+  void deleteItem(String docId, String collectionPath, List list, int index) async {
+    try {
+      // Обращение к документу в Firestore и обновление поля 'name'
+      await fireStore
+          .collection(collectionPath)
+          .doc(docId) // Используйте идентификатор документа папки
+          .delete();
+
+      // Если обновление в Firestore прошло успешно, обновляем имя в локальном списке
+      setState(() {
+        list.removeAt(index);
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Failed to delete item: $e'),
+      ));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -807,7 +395,7 @@ class _ProjectPageState extends State<ProjectPage>
         children: [
           Row(
             children: [
-              if (_isListVisible)
+              if (_isApiListVisible)
                 Expanded(
                   flex: 1,
                   child: Column(
@@ -818,9 +406,13 @@ class _ProjectPageState extends State<ProjectPage>
                             child: Padding(
                               padding: const EdgeInsets.fromLTRB(8, 8, 0, 0),
                               child: ElevatedButton(
+                                child: const Text('Add API'),
                                 onPressed: () {
                                   selectedProjectIdNotifier.value == null
-                                      ? ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a project at first')))
+                                      ? ScaffoldMessenger.of(context)
+                                          .showSnackBar(const SnackBar(
+                                              content: Text(
+                                                  'Please select a project at first')))
                                       : showDialog(
                                           context: context,
                                           builder: (BuildContext context) {
@@ -828,7 +420,6 @@ class _ProjectPageState extends State<ProjectPage>
                                           },
                                         );
                                 },
-                                child: const Text('Add API'),
                               ),
                             ),
                           ),
@@ -1001,7 +592,8 @@ class _ProjectPageState extends State<ProjectPage>
                                                     title: Text(tag),
                                                     children: apis
                                                         .map((api) => ListTile(
-                                                              trailing: api.status ==
+                                                              trailing: api
+                                                                          .status ==
                                                                       ApiStatus
                                                                           .done
                                                                   ? const Icon(
@@ -1065,7 +657,7 @@ class _ProjectPageState extends State<ProjectPage>
                                                         '${api.method.name} ${api.endpoint}'),
                                                     onTap: () => setState(() {
                                                       // Находим индекс api в общем списке paths
-                                                      apiIndex = paths
+                                                      int apiIndex = paths
                                                           .indexWhere((path) =>
                                                               path.method ==
                                                                   api.method &&
@@ -1089,16 +681,16 @@ class _ProjectPageState extends State<ProjectPage>
                     ],
                   ),
                 ),
-              if (_isListVisible) const VerticalDivider(width: 1),
+              if (_isApiListVisible) const VerticalDivider(width: 1),
               Align(
                 alignment: Alignment.centerLeft,
                 child: IconButton(
-                  icon: Icon(_isListVisible
+                  icon: Icon(_isApiListVisible
                       ? Icons.arrow_back_ios_new
                       : Icons.arrow_forward_ios_outlined),
                   onPressed: () {
                     setState(() {
-                      _isListVisible = !_isListVisible;
+                      _isApiListVisible = !_isApiListVisible;
                     });
                   },
                 ),
@@ -1119,65 +711,650 @@ class _ProjectPageState extends State<ProjectPage>
           ),
           Row(
             children: [
-              Expanded(
-                flex: 1,
-                child: Column(
-                  children: [
-                    Row(
+              if (_isCaseListVisible)
+                ValueListenableBuilder<String>(
+                    valueListenable: testCaseListCurrent,
+                    builder: (context, value, child) {
+                  if(value == 'folder') { return
+                  Expanded(
+                    flex: 1,
+                    child: Column(
                       children: [
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(8, 8, 0, 0),
-                            child: ElevatedButton(
-                              onPressed: () {
-                                // Здесь должна быть ваша логика для добавления API
-                              },
-                              child: const Text('Add TestCase'),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+                                child: ElevatedButton(
+                                  child: const Text('Add Folder'),
+                                  onPressed: () {
+                                    selectedProjectIdNotifier.value == null
+                                        ? ScaffoldMessenger.of(context)
+                                        .showSnackBar(const SnackBar(
+                                        content: Text(
+                                            'Please select a project at first')))
+                                        : isFolderEditing
+                                        ? ScaffoldMessenger.of(context)
+                                        .showSnackBar(const SnackBar(
+                                        content: Text(
+                                            'Please finish editing')))
+                                        : showDialog(
+                                      context: context,
+                                      builder: (BuildContext context) {
+                                        // Создаем контроллер для текстового поля
+                                        TextEditingController nameController = TextEditingController();
+
+                                        // Возвращаем AlertDialog
+                                        return AlertDialog(
+                                          title: const Text('Add New Folder'),
+                                          content: TextField(
+                                            controller: nameController,
+                                            decoration: const InputDecoration(
+                                                hintText: "Enter folder name"),
+                                            autofocus: true,
+                                          ),
+                                          actions: <Widget>[
+                                            TextButton(
+                                              child: const Text('Cancel'),
+                                              onPressed: () {
+                                                Navigator.of(context)
+                                                    .pop(); // Закрыть диалог без сохранения
+                                              },
+                                            ),
+                                            TextButton(
+                                              child: const Text('Add'),
+                                              onPressed: () async {
+                                                final folderName = nameController
+                                                    .text;
+
+                                                // Проверяем, пустое ли имя папки
+                                                if (folderName.isEmpty) {
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(
+                                                      const SnackBar(
+                                                        content: Text(
+                                                            'Folder name cannot be empty'),
+                                                      ));
+                                                  // Проверяем, содержится ли уже такое имя в списке
+                                                } else if (testCaseFolders.any((
+                                                    folder) =>
+                                                folder.name == folderName)) {
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(
+                                                      const SnackBar(
+                                                        content: Text(
+                                                            'Folder name needs to be unique'),
+                                                      ));
+                                                } else {
+                                                  // Добавление новой папки в список
+                                                  try {
+                                                    final docRef = await fireStore
+                                                        .collection(
+                                                        'users/${currentUser
+                                                            ?.uid}/APIs/${selectedProjectIdNotifier
+                                                            .value}/testcasefolders')
+                                                        .add({
+                                                      'title': folderName
+                                                    });
+                                                    setState(() {
+                                                      testCaseFolders.add(
+                                                          Folder(
+                                                              name: folderName,
+                                                              docId: docRef
+                                                                  .id));
+                                                    });
+                                                  } catch (e) {
+                                                    ScaffoldMessenger.of(
+                                                        context).showSnackBar(
+                                                        SnackBar(
+                                                          content: Text(
+                                                              'Error with adding a folder: $e'),
+                                                        ));
+                                                  }
+                                                  Navigator.of(context)
+                                                      .pop(); // Закрыть диалог после сохранения
+                                                }
+                                              },
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                    );
+                                  },
+                                ),
+                              ),
                             ),
-                          ),
+                          ],
                         ),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-                          child: IconButton(
-                            icon: const Icon(Icons.filter_list),
-                            onPressed: () {
-                              // Здесь должна быть ваша логика для добавления чего-либо ещё
-                            },
-                          ),
-                        ),
+                        const Divider(),
+                        selectedProjectIdNotifier.value == null
+                            ? const Expanded(
+                            child: Center(child: Text('Select a project')))
+                            : ValueListenableBuilder<String?>(
+                            valueListenable: selectedProjectIdNotifier,
+                            builder: (context, selectedProjectId, child) {
+                              if (selectedProjectId != null &&
+                                  updateProjectPage) {
+                                // Центрирование CircularProgressIndicator
+                                return const Expanded(
+                                  child: Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
+                                );
+                              }
+                              return Expanded(
+                                child: ListView.builder(
+                                  itemCount: testCaseFolders.length,
+                                  itemBuilder: (context, index) {
+                                    return FolderTile(
+                                      index: index,
+                                      folder: testCaseFolders[index],
+                                      onRename: (newName) {
+                                        renameItem(
+                                            testCaseFolders[index].docId,
+                                            'users/${currentUser
+                                                ?.uid}/APIs/${selectedProjectIdNotifier
+                                                .value}/testcasefolders',
+                                            {'name': newName}, () {
+                                          testCaseFolders[index].name = newName;
+                                        }
+                                        );
+                                      },
+                                      onDelete: () {
+                                        deleteItem(
+                                            testCaseFolders[index].docId,
+                                            'users/${currentUser
+                                                ?.uid}/APIs/${selectedProjectIdNotifier
+                                                .value}/testcasefolders',
+                                            testCaseFolders,
+                                            index
+                                        );
+                                      },
+                                    );
+                                  },
+                                ),
+                              );
+                            }),
                       ],
                     ),
-                    const Divider(),
-                    Expanded(
-                      child: ListView.builder(
-                        itemCount: testCases.length,
-                        itemBuilder: (context, index) {
-                          String testCase = testCases[index];
-                          return ListTile(
-                            title: Text(testCase),
-                            onTap: () => setState(() {
-                              selectedTestCaseIndex = index;
+                  );
+                  } else {
+                  return
+                  Expanded(
+                    flex: 1,
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: IconButton(
+                                icon: const Icon(Icons.arrow_back),
+                                onPressed: () {
+                                  setState(() {
+                                    testCaseListCurrent.value = 'folder';
+                                  });
+                                },
+                              ),
+                            ),
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(0, 8, 8, 0),
+                                child: ElevatedButton(
+                                  child: const Text('Add TestCase'),
+                                  onPressed: () {
+                                    selectedProjectIdNotifier.value == null
+                                        ? ScaffoldMessenger.of(context)
+                                        .showSnackBar(const SnackBar(
+                                        content: Text(
+                                            'Please select a project at first')))
+                                        : isFolderEditing
+                                        ? ScaffoldMessenger.of(context)
+                                        .showSnackBar(const SnackBar(
+                                        content: Text(
+                                            'Please finish editing')))
+                                        : showDialog(
+                                      context: context,
+                                      builder: (BuildContext context) {
+                                        // Создаем контроллер для текстового поля
+                                        TextEditingController nameController = TextEditingController();
+
+                                        // Возвращаем AlertDialog
+                                        return AlertDialog(
+                                          title: const Text('Add New TestCase'),
+                                          content: TextField(
+                                            controller: nameController,
+                                            decoration: const InputDecoration(
+                                                hintText: "Enter testcase name"),
+                                            autofocus: true,
+                                          ),
+                                          actions: <Widget>[
+                                            TextButton(
+                                              child: const Text('Cancel'),
+                                              onPressed: () {
+                                                Navigator.of(context)
+                                                    .pop(); // Закрыть диалог без сохранения
+                                              },
+                                            ),
+                                            TextButton(
+                                              child: const Text('Add'),
+                                              onPressed: () async {
+                                                final caseName = nameController.text;
+
+                                                // Проверяем, пустое ли имя папки
+                                                if (caseName.isEmpty) {
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(
+                                                      const SnackBar(
+                                                        content: Text(
+                                                            'TestCase name cannot be empty'),
+                                                      ));
+                                                  // Проверяем, содержится ли уже такое имя в списке
+                                                } else if (testCases.any((testcase) =>
+                                                testcase.name == caseName)) {
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(
+                                                      const SnackBar(
+                                                        content: Text(
+                                                            'TestCase name needs to be unique'),
+                                                      ));
+                                                } else {
+                                                  // Добавление нового кейса в список
+                                                  try {
+                                                    final docRef = await fireStore
+                                                        .collection(
+                                                        'users/${currentUser?.uid}/APIs/${selectedProjectIdNotifier.value}/testcasefolders/${testCaseFolders[selectedTestFolderIndex].docId}/testcases')
+                                                        .add({
+                                                          'name': caseName
+                                                        });
+                                                    setState(() {
+                                                      testCaseFolders[selectedTestFolderIndex].testCases.add(
+                                                          TestCase(
+                                                              name: caseName,
+                                                              docId: docRef.id));
+                                                    });
+                                                  } catch (e) {
+                                                    ScaffoldMessenger.of(
+                                                        context).showSnackBar(
+                                                        SnackBar(
+                                                          content: Text(
+                                                              'Error with adding a testcase: $e'),
+                                                        ));
+                                                  }
+                                                  Navigator.of(context).pop(); // Закрыть диалог после сохранения
+                                                }
+                                              },
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Divider(),
+                        selectedProjectIdNotifier.value == null
+                            ? const Expanded(
+                            child: Center(child: Text('Select a project')))
+                            : ValueListenableBuilder<int>(
+                            valueListenable: selectedTestCaseIndex,
+                            builder: (context, selectedProjectId, child) {
+                              return Expanded(
+                                child: ListView.builder(
+                                  itemCount: testCaseFolders[selectedTestFolderIndex].testCases.length,
+                                  itemBuilder: (context, index) {
+                                    return CaseTile(
+                                      index: index,
+                                      testCase: testCaseFolders[selectedTestFolderIndex].testCases[index],
+                                      onRename: (newName) {
+                                        renameItem(
+                                              testCaseFolders[selectedTestFolderIndex]
+                                                  .testCases[index].docId,
+                                              'users/${currentUser?.uid}/APIs/${selectedProjectIdNotifier.value}/testcasefolders/${testCaseFolders[selectedTestFolderIndex].docId}/testcases',
+                                              {'name': newName},
+                                              () {
+                                                testCaseFolders[selectedTestFolderIndex].testCases[index].name = newName;
+                                              }
+                                        );
+                                      },
+                                      onDelete: () {
+                                        deleteItem(
+                                            testCaseFolders[selectedTestFolderIndex]
+                                                .testCases[index].docId,
+                                            'users/${currentUser
+                                                ?.uid}/APIs/${selectedProjectIdNotifier
+                                                .value}/testcasefolders/${testCaseFolders[selectedTestFolderIndex]
+                                                .docId}/testcases',
+                                            testCaseFolders[selectedTestFolderIndex]
+                                                .testCases,
+                                            index
+                                        );
+                                        setState(() {
+                                          selectedTestCaseIndex.value = -1;
+                                        });
+                                      },
+                                    );
+                                  },
+                                ),
+                              );
                             }),
-                          );
-                        },
-                      ),
+                      ],
                     ),
-                  ],
+                  );
+                  }}),
+              if (_isCaseListVisible) const VerticalDivider(width: 1),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: IconButton(
+                  icon: Icon(_isCaseListVisible
+                      ? Icons.arrow_back_ios_new
+                      : Icons.arrow_forward_ios_outlined),
+                  onPressed: () {
+                    setState(() {
+                      _isCaseListVisible = !_isCaseListVisible;
+                    });
+                  },
                 ),
               ),
-              const VerticalDivider(width: 1),
               Expanded(
-                  flex: 5,
-                  child: selectedTestCaseIndex == -1
-                      ? const Center(
-                          child: Text(
-                              'Select an object from list to view details'))
-                      : TestCaseDetailPage(
-                          testCase: testCases[selectedTestCaseIndex])),
+                flex: 5,
+                child: ValueListenableBuilder<int>(
+                  valueListenable: selectedTestCaseIndex,
+                  builder: (context, selectedProjectId, child) {
+                    return selectedProjectIdNotifier.value == null
+                    ? const Center(
+                    child: Text(
+                    'Please select a project to show this content'))
+                        : selectedTestCaseIndex.value == -1
+                    ? const Center(
+                    child: Text(
+                    'Select test case from list to view details'))
+                        : TestCaseDetailPage(
+                      key: ValueKey(testCaseFolders[selectedTestFolderIndex].testCases[selectedTestCaseIndex.value].docId),
+                      testCase: testCaseFolders[selectedTestFolderIndex].testCases[selectedTestCaseIndex.value],
+                    );
+
+                  }
+                ),
+              ),
             ],
           ),
         ],
       ),
+    );
+  }
+}
+
+class Folder {
+  String name;
+  final String docId; // Идентификатор документа в Firestore
+  List<TestCase> testCases;
+
+  Folder({required this.name, required this.docId, this.testCases = const []});
+}
+
+class FolderTile extends StatefulWidget {
+  final Folder folder;
+  final ValueChanged<String> onRename;
+  final VoidCallback onDelete;
+  final int index;
+
+  const FolderTile({super.key,
+    required this.folder,
+    required this.onRename,
+    required this.onDelete,
+    required this.index,
+  });
+
+  @override
+  _FolderTileState createState() => _FolderTileState();
+}
+
+
+class _FolderTileState extends State<FolderTile> {
+  TextEditingController? _controller;
+  late String _initialName;
+
+  @override
+  void initState() {
+    super.initState();
+    _initialName = widget.folder.name;
+    _controller = TextEditingController(text: widget.folder.name);
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  void _startEditing() {
+    setState(() {
+      isFolderEditing = true;
+    });
+  }
+
+  String _getUniqueName(String newName) {
+    final baseName = newName;
+    int count = 1;
+
+    while (testCaseFolders.any((folder) => folder.name == newName)) {
+      newName = '$baseName($count)';
+      count++;
+    }
+    return newName;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      title: isFolderEditing
+          ? TextField(
+              controller: _controller,
+              autofocus: true,
+              onEditingComplete: () {
+                final newName = _controller!.text;
+                if (newName.isEmpty) {
+                  // Если поле ввода пустое, возвращаем исходное имя
+                  _controller?.text = _initialName;
+                } else {
+                  // Проверяем, есть ли уже такое имя в списке
+                  final uniqueName = _getUniqueName(newName);
+                  widget.onRename(uniqueName);
+                  _controller?.text = uniqueName; // Обновляем текст в TextField
+                }
+                FocusManager.instance.primaryFocus?.unfocus();
+                setState(() {
+                  isFolderEditing = false;
+                });
+              },
+              onTapOutside: (event) {
+                final newName = _controller!.text;
+                if (newName.isEmpty) {
+                  // Если поле ввода пустое, возвращаем исходное имя
+                  _controller?.text = _initialName;
+                } else {
+                  // Проверяем, есть ли уже такое имя в списке
+                  final uniqueName = _getUniqueName(newName);
+                  widget.onRename(uniqueName);
+                  _controller?.text = uniqueName; // Обновляем текст в TextField
+                }
+                FocusManager.instance.primaryFocus?.unfocus();
+                setState(() {
+                  isFolderEditing = false;
+                });
+              },
+            )
+          : Text(widget.folder.name),
+      trailing: PopupMenuButton(
+        onSelected: (value) {
+          if (value == 'rename') {
+            if (!isFolderEditing) {
+              _startEditing();
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                  content: Text('Finish Rename operation at first')));
+            }
+          } else {
+            widget.onDelete();
+          }
+        },
+        itemBuilder: (context) => [
+          const PopupMenuItem(
+            value: 'rename',
+            child: Text('Rename Folder'),
+          ),
+          const PopupMenuItem(
+            value: 'delete',
+            child: Text('Delete Folder'),
+          ),
+        ],
+      ),
+      onTap: () {
+        setState(() {
+          selectedTestFolderIndex = widget.index; // Обновляем выбранный индекс папки
+          testCaseListCurrent.value = 'testcase';
+        });
+      },
+    );
+  }
+}
+
+class TestCase {
+  String name;
+  List<String>? fetchedApisID;
+  String? url;
+  String? description;
+  final String docId; // Идентификатор документа в Firestore
+
+  TestCase({required this.name, this.fetchedApisID, this.url, this.description, required this.docId});
+}
+
+class CaseTile extends StatefulWidget {
+  final TestCase testCase;
+  final ValueChanged<String> onRename;
+  final VoidCallback onDelete;
+  final int index;
+
+  const CaseTile({super.key,
+    required this.testCase,
+    required this.onRename,
+    required this.onDelete,
+    required this.index,
+  });
+
+  @override
+  _CaseTileState createState() => _CaseTileState();
+}
+
+
+class _CaseTileState extends State<CaseTile> {
+  TextEditingController? _controller;
+  late String _initialName;
+
+  @override
+  void initState() {
+    super.initState();
+    _initialName = widget.testCase.name;
+    _controller = TextEditingController(text: widget.testCase.name);
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  void _startEditing() {
+    setState(() {
+      isFolderEditing = true;
+    });
+  }
+
+  String _getUniqueName(String newName) {
+    final baseName = newName;
+    int count = 1;
+
+    while (testCaseFolders.any((folder) => folder.name == newName)) {
+      newName = '$baseName($count)';
+      count++;
+    }
+    return newName;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      title: isTestCaseEditing
+          ? TextField(
+        controller: _controller,
+        autofocus: true,
+        onEditingComplete: () {
+          final newName = _controller!.text;
+          if (newName.isEmpty) {
+            // Если поле ввода пустое, возвращаем исходное имя
+            _controller?.text = _initialName;
+          } else {
+            // Проверяем, есть ли уже такое имя в списке
+            final uniqueName = _getUniqueName(newName);
+            widget.onRename(uniqueName);
+            _controller?.text = uniqueName; // Обновляем текст в TextField
+          }
+          FocusManager.instance.primaryFocus?.unfocus();
+          setState(() {
+            isTestCaseEditing = false;
+          });
+        },
+        onTapOutside: (event) {
+          final newName = _controller!.text;
+          if (newName.isEmpty) {
+            // Если поле ввода пустое, возвращаем исходное имя
+            _controller?.text = _initialName;
+          } else {
+            // Проверяем, есть ли уже такое имя в списке
+            final uniqueName = _getUniqueName(newName);
+            widget.onRename(uniqueName);
+            _controller?.text = uniqueName; // Обновляем текст в TextField
+          }
+          FocusManager.instance.primaryFocus?.unfocus();
+          setState(() {
+            isTestCaseEditing = false;
+          });
+        },
+      )
+          : Text(widget.testCase.name),
+      trailing: PopupMenuButton(
+        onSelected: (value) {
+          if (value == 'rename') {
+            if (!isFolderEditing) {
+              _startEditing();
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                  content: Text('Finish Rename operation at first')));
+            }
+          } else {
+            widget.onDelete();
+          }
+        },
+        itemBuilder: (context) => [
+          const PopupMenuItem(
+            value: 'rename',
+            child: Text('Rename TestCase'),
+          ),
+          const PopupMenuItem(
+            value: 'delete',
+            child: Text('Delete TestCase'),
+          ),
+        ],
+      ),
+      onTap: () {
+        setState(() {
+          selectedTestCaseIndex.value = widget.index; // Обновляем выбранный индекс папки
+        });
+      },
     );
   }
 }
