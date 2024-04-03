@@ -2,6 +2,8 @@ import 'package:diplom/widgets/createproject_dialog.dart';
 import 'package:diplom/widgets/settings_dialog.dart';
 import 'package:flutter/material.dart';
 
+import '../main.dart';
+
 class EmptyNavigationRail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -29,7 +31,7 @@ class EmptyNavigationRail extends StatelessWidget {
               child: const Icon(Icons.add),
             ),
           ),
-          const CircularProgressIndicator(),
+          if (currentUser!.emailVerified) const CircularProgressIndicator(),
           Align(
             alignment: Alignment.bottomCenter,
             child: Padding(

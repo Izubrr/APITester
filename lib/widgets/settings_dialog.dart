@@ -1,8 +1,11 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:diplom/pages/login_page.dart';
+import 'package:diplom/utils/auth.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:diplom/main.dart';
 import '../pages/main_navigation_scaffold.dart';
+import 'dart:html' as html;
 
 class SettingsDialog extends StatefulWidget {
   @override
@@ -11,9 +14,11 @@ class SettingsDialog extends StatefulWidget {
 
 const List<NavigationRailLabelType> navRailLabelTypeList = <NavigationRailLabelType>[NavigationRailLabelType.all, NavigationRailLabelType.selected, NavigationRailLabelType.none];
 
+bool isEmailVerified = false;
+bool _isVerifyLoading = false;
+
 class _SettingsDialogState extends State<SettingsDialog> {
   bool isDarkTheme = true;
-  bool _isSigningOut = false;
 
   @override
   Widget build(BuildContext context) {
@@ -59,6 +64,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                           onChanged: (NavigationRailLabelType? newValue) {
                             if (newValue != null) {
                               labelTypeNotifier.value = newValue;
+                              saveSettings();
                             }
                           },
                           hint: const Text("Choose label type"),
@@ -103,6 +109,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                                     onChanged: (value) {
                                       setState(() {
                                         mainThemeColorNotifier.value = value as Color;
+                                        saveSettings();
                                       });
                                     },
                                   ),
@@ -119,6 +126,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                                     onChanged: (value) {
                                       setState(() {
                                         mainThemeColorNotifier.value = value as Color;
+                                        saveSettings();
                                       });
                                     },
                                   ),
@@ -135,6 +143,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                                     onChanged: (value) {
                                       setState(() {
                                         mainThemeColorNotifier.value = value as Color;
+                                        saveSettings();
                                       });
                                     },
                                   ),
@@ -151,6 +160,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                                     onChanged: (value) {
                                       setState(() {
                                         mainThemeColorNotifier.value = value as Color;
+                                        saveSettings();
                                       });
                                     },
                                   ),
@@ -167,6 +177,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                                     onChanged: (value) {
                                       setState(() {
                                         mainThemeColorNotifier.value = value as Color;
+                                        saveSettings();
                                       });
                                     },
                                   ),
@@ -183,6 +194,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                                     onChanged: (value) {
                                       setState(() {
                                         mainThemeColorNotifier.value = value as Color;
+                                        saveSettings();
                                       });
                                     },
                                   ),
@@ -199,6 +211,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                                     onChanged: (value) {
                                       setState(() {
                                         mainThemeColorNotifier.value = value as Color;
+                                        saveSettings();
                                       });
                                     },
                                   ),
@@ -215,6 +228,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                                     onChanged: (value) {
                                       setState(() {
                                         mainThemeColorNotifier.value = value as Color;
+                                        saveSettings();
                                       });
                                     },
                                   ),
@@ -231,6 +245,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                                     onChanged: (value) {
                                       setState(() {
                                         mainThemeColorNotifier.value = value as Color;
+                                        saveSettings();
                                       });
                                     },
                                   ),
@@ -254,6 +269,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                     value: isDarkThemeNotifier.value,
                     onChanged: (bool value) {
                       isDarkThemeNotifier.value = value;
+                      saveSettings();
                     },
                   ),
                 ),
@@ -262,28 +278,38 @@ class _SettingsDialogState extends State<SettingsDialog> {
                 child: ListTile(
                   leading: const Icon(Icons.sunny),
                   title: const Text('Account settings'),
-                  subtitle: const Text(
-                      'Manage your account settings'),
-                  trailing: _isSigningOut
-                      ? CircularProgressIndicator()
-                      : ElevatedButton(
-                    onPressed: () async {
-                      setState(() {
-                        _isSigningOut = true;
-                      });
-                      await FirebaseAuth.instance.signOut();
-                      setState(() {
-                        _isSigningOut = false;
-                      });
-                      currentUser = null;
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(
-                          builder: (context) => LoginPage(),
-                        ),
-                      );
-                    },
-                    child: Text('Sign out'),
-                  ),
+                  subtitle: const Text('Manage your account settings'),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ElevatedButton(
+                        child: const Text('Delete Account'),
+                        onPressed: () async {
+                          deleteAccount();
+                        },
+                      ),
+                      const SizedBox(width: 2,),
+                      ElevatedButton(
+                        child: const Text('Sign out'),
+                        onPressed: () async {
+                          await FirebaseAuth.instance.signOut();
+                          currentUser = null;
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(
+                              builder: (context) => LoginPage(),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(width: 2,),
+                      FilledButton(
+                        onPressed: !currentUser!.emailVerified ? () async {
+                          verifyEmail();
+                        } : null,
+                        child: const Text('Verify email')
+                      ),
+                    ],
+                  )
                 ),
               ),
               Align(
@@ -303,5 +329,109 @@ class _SettingsDialogState extends State<SettingsDialog> {
         ),
       ),
     );
+  }
+
+  void verifyEmail() async {
+    // Используйте Builder для получения правильного контекста
+    await showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) => AlertDialog(
+        title: const Text('Verify Your Email'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('A verification link has been sent to your email account —'
+                '\nPlease check your email and click on the link to verify your email address.'),
+            Card(
+              child: ListTile(
+                leading: isEmailVerified ? const Icon( Icons.check, color: Colors.green,) : const Icon(Icons.close),
+                title: Text('Verification Status: ${isEmailVerified ? 'done - Now refresh this page' : 'not done'}'),
+              ),
+            ),
+          ],
+        ),
+        actions: <Widget>[
+          TextButton(
+            child: const Text('Close'),
+            onPressed: () {
+              Navigator.of(dialogContext).pop(); // Закрывает диалоговое окно, используя dialogContext
+            },
+          ),
+          if (!isEmailVerified) ...[
+            _isVerifyLoading
+                ? const CircularProgressIndicator()
+                : FilledButton.icon(
+                    icon: Icon(Icons.refresh),
+                    label: const Text('Update'),
+                    onPressed: () async {
+                      setState(() => _isVerifyLoading = true);
+                      await Auth.refreshUser(currentUser!);
+                      // Обновите информацию о пользователе, чтобы проверить, верифицирован ли email
+                      await currentUser!.reload();
+                      if (currentUser!.emailVerified) {
+                        setState(() {
+                          isEmailVerified = true;
+                          _isVerifyLoading = false;
+                        });
+                      } else {
+                        setState(() => _isVerifyLoading = false);
+                      }
+                    },
+                  ),
+          ] else ...[
+            const Text('Your Email is verified'),
+          ],
+        ],
+      ),
+    );
+  }
+
+
+  void deleteAccount() async {
+    // Показываем диалоговое окно для подтверждения удаления
+    final bool? confirmDelete = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        title: const Text('Delete Account'),
+        content: const Text('Are you sure you want to delete your account? This action cannot be undone.'),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete'),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red, // Make delete text red to indicate a destructive action
+            ),
+          ),
+        ],
+      ),
+    );
+
+    // Если пользователь подтвердил удаление
+    if (confirmDelete == true) {
+      try {
+        // Удаляем документ пользователя из Firestore
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(currentUser?.uid)
+            .delete();
+
+        // Удаляем аккаунт пользователя
+        await FirebaseAuth.instance.currentUser?.delete();
+
+        // Переходим на страницу входа после удаления аккаунта
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => LoginPage(), // LoginPage должен быть вашим виджетом страницы входа
+          ),
+        );
+      } catch (e) {
+        print('Error deleting account: $e');
+        // Здесь может быть дополнительная обработка ошибок, например, показ сообщения об ошибке
+      }
+    }
   }
 }

@@ -4,6 +4,8 @@ import 'package:diplom/utils/auth.dart';
 import 'package:diplom/utils/validator.dart';
 import 'package:diplom/pages/main_navigation_scaffold.dart';
 
+import '../main.dart';
+
 class Login_Widget extends StatefulWidget {
   const Login_Widget({super.key});
 
@@ -27,6 +29,7 @@ class _Login_WidgetState extends State<Login_Widget> {
         mainAxisSize: MainAxisSize.min, // Минимальный размер по высоте
         children: <Widget>[
           TextFormField(
+            autofillHints: const [AutofillHints.email],
             controller: _emailTextController,
             validator: (value) => Validator.validateEmail(
               email: value,
@@ -62,6 +65,7 @@ class _Login_WidgetState extends State<Login_Widget> {
           ),
           const SizedBox(height: 8),
           TextFormField(
+            autofillHints: const [AutofillHints.password],
             controller: _passwordTextController,
             obscureText: true,
             validator: (value) => Validator.validatePassword(
@@ -106,18 +110,19 @@ class _Login_WidgetState extends State<Login_Widget> {
                         _isProcessing = true;
                       });
 
-                      User? user = await Auth.signInUsingEmailPassword(
+                      currentUser = await Auth.signInUsingEmailPassword(
                         email: _emailTextController.text,
                         password: _passwordTextController.text,
                       );
 
-                      if (user != null) {
+                      if (currentUser != null) {
+                        print(currentUser!.uid);
                         Navigator.of(context).pushReplacement(
                           MaterialPageRoute(
                             builder: (context) => MainNavigationScaffold(),
                           ),
                         );
-                      }
+                      } else print('User is null');
                       setState(() {
                         _isProcessing = false;
                       });

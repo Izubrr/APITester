@@ -23,7 +23,6 @@ class Auth {
     required String password,
   }) async {
     FirebaseAuth auth = FirebaseAuth.instance;
-    User? user;
 
     try {
       UserCredential userCredential = await auth.createUserWithEmailAndPassword(
@@ -31,15 +30,15 @@ class Auth {
         password: password,
       );
 
-      user = userCredential.user;
-      await user!.updateProfile(displayName: name);
-      await user.reload();
-      user = auth.currentUser;
+      currentUser = userCredential.user;
+      await currentUser!.updateDisplayName(name);
+      await currentUser?.reload();
+      currentUser = auth.currentUser;
     } on FirebaseAuthException catch (e) {
       scaffoldMessengerState?.showSnackBar(SnackBar(content: Text(getStringAfterFirstSpace(e.toString()))));
     }
 
-    return user;
+    return currentUser;
   }
 
   // For signing in an user (have already registered)
@@ -48,19 +47,18 @@ class Auth {
     required String password,
   }) async {
     FirebaseAuth auth = FirebaseAuth.instance;
-    User? user;
 
     try {
       UserCredential userCredential = await auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
-      user = userCredential.user;
+      currentUser = userCredential.user;
     } on FirebaseAuthException catch (e) {
       scaffoldMessengerState?.showSnackBar(SnackBar(content: Text(getStringAfterFirstSpace(e.toString()))));
     }
 
-    return user;
+    return currentUser;
   }
 
   static Future<User?> refreshUser(User user) async {

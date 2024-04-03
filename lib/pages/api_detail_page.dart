@@ -144,11 +144,26 @@ class _ApiDetailPageState extends State<ApiDetailPage> {
     return value;
   }
 
-  @override
-  void initState() {
-
-    super.initState();
+  int findTestCaseIndex(String selectedCaseId) {
+    for (int i = 0; i < testCases.length; i++) {
+      if (testCases[i].docId == selectedCaseId) {
+        return i;
+      }
+    }
+    return -1; // Возвращаем -1, если не нашли соответствующий TestCase
   }
+
+  int findFolderIndexByTestCase(TestCase targetTestCase) {
+    // Перебираем все папки
+    for (int i = 0; i < testCaseFolders.length; i++) {
+      // Проверяем, содержит ли текущая папка целевой TestCase по docId
+      if (testCaseFolders[i].testCases.any((testCase) => testCase.docId == targetTestCase.docId)) {
+        return i; // Возвращаем индекс папки, если нашли соответствие
+      }
+    }
+    return -1; // Возвращаем -1, если не нашли папку, содержащую TestCase
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -356,7 +371,7 @@ class _ApiDetailPageState extends State<ApiDetailPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Text(
-                                  'Fetched APIs',
+                                  'Fetched TestCases',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 18,
@@ -369,13 +384,21 @@ class _ApiDetailPageState extends State<ApiDetailPage> {
                                   runSpacing: 4.0,
                                   // Расстояние между строками чипов
                                   children: List<Widget>.generate(
-                                    relatedTestCases.length,
-                                        (index) {
-                                      return Chip(
+                                    relatedTestCases.length, (index) {
+                                      String selectedCaseId;
+                                      return ActionChip(
                                         label: Text(relatedTestCases[index].name),
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(10), // Скруглённые края
                                         ),
+                                        onPressed: () {
+                                          selectedCaseId = relatedTestCases[index].docId;
+
+                                          testCaseListCurrent.value = 'testcase';
+                                          selectedTestCaseIndex.value = findTestCaseIndex(selectedCaseId);
+                                          selectedTestFolderIndex = findFolderIndexByTestCase(relatedTestCases[index]);
+                                          projectPageTabController.animateTo(1);
+                                        },
                                       );
                                     },
                                   ),
@@ -420,7 +443,7 @@ class _ApiDetailPageState extends State<ApiDetailPage> {
                       Expanded(
                         child: Card(
                           child: ListTile(
-                            title: const Text('Request Sample'),
+                            title: const Text('Request Example'),
                             subtitle: SizedBox(
                               height: 300,
                               child: SingleChildScrollView(
@@ -438,8 +461,9 @@ class _ApiDetailPageState extends State<ApiDetailPage> {
                                     } else {
                                       // Если в кэше нет данных, загружаем их и сохраняем в кэш
                                       String newData = await fetchMapWithRefs(
-                                          map: {'name': 'Tuco'},
-                                          requestMapId: 'schema');
+                                          map: requestBodyCodes[
+                                          paths[selectedApiIndex].pathId],
+                                          requestMapId: 'examples');
                                       apiDataCache[cacheKey] = newData;
                                       return newData;
                                     }
@@ -450,18 +474,18 @@ class _ApiDetailPageState extends State<ApiDetailPage> {
                                         ? const CircularProgressIndicator()
                                         : !snapshot.hasData
                                         ? const Text(
-                                        'There is no Request Sample')
+                                        'There is no Request Example')
                                         : HighlightView(
-                                      snapshot.data!,
-                                      language: 'json',
-                                      theme: codeTheme,
-                                      padding:
-                                      const EdgeInsets.all(12),
-                                      textStyle: const TextStyle(
-                                        fontFamily: 'monospace',
-                                        fontSize: 14,
-                                      ),
-                                    );
+                                            snapshot.data!,
+                                            language: 'json',
+                                            theme: codeTheme,
+                                            padding:
+                                            const EdgeInsets.all(12),
+                                            textStyle: const TextStyle(
+                                              fontFamily: 'monospace',
+                                              fontSize: 14,
+                                            ),
+                                          );
                                   },
                                 ),
                               ),
@@ -518,18 +542,18 @@ class _ApiDetailPageState extends State<ApiDetailPage> {
                                               ? const Text(
                                               'There is no Response Example')
                                               : HighlightView(
-                                            snapshot.data!,
-                                            language: 'json',
-                                            theme: codeTheme,
-                                            padding:
-                                            const EdgeInsets.all(
-                                                12),
-                                            textStyle:
-                                            const TextStyle(
-                                              fontFamily: 'monospace',
-                                              fontSize: 14,
-                                            ),
-                                          );
+                                                  snapshot.data!,
+                                                  language: 'json',
+                                                  theme: codeTheme,
+                                                  padding:
+                                                  const EdgeInsets.all(
+                                                      12),
+                                                  textStyle:
+                                                  const TextStyle(
+                                                    fontFamily: 'monospace',
+                                                    fontSize: 14,
+                                                  ),
+                                                );
                                         },
                                       ),
                                     ),

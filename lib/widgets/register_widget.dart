@@ -32,6 +32,7 @@ class _Register_WidgetState extends State<Register_Widget> {
         mainAxisSize: MainAxisSize.min, // Минимальный размер по высоте
         children: <Widget>[
           TextFormField(
+            autofillHints: const [AutofillHints.nickname, AutofillHints.name],
             controller: _nameTextController,
             validator: (value) => Validator.validateName(
               name: value,
@@ -67,6 +68,7 @@ class _Register_WidgetState extends State<Register_Widget> {
           ),
           const SizedBox(height: 8),
           TextFormField(
+            autofillHints: const [AutofillHints.email],
             controller: _emailTextController,
             validator: (value) => Validator.validateEmail(
               email: value,
@@ -102,6 +104,7 @@ class _Register_WidgetState extends State<Register_Widget> {
           ),
           const SizedBox(height: 8),
           TextFormField(
+            autofillHints: const [AutofillHints.password],
             controller: _passwordTextController,
             obscureText: true,
             validator: (value) => Validator.validatePassword(
@@ -138,6 +141,7 @@ class _Register_WidgetState extends State<Register_Widget> {
           ),
           const SizedBox(height: 8),
           TextFormField(
+            autofillHints: const [AutofillHints.password],
             controller: _passwordConfirmTextController,
             obscureText: true,
             validator: (value) => Validator.validatePassword2(
@@ -198,7 +202,6 @@ class _Register_WidgetState extends State<Register_Widget> {
                         builder: (context) => MainNavigationScaffold(),
                       ),
                     );
-                    print('REGISTERED');
                   }
                 }
               },

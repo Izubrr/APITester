@@ -297,24 +297,4 @@ class _TestCaseDetailPageState extends State<TestCaseDetailPage> with SingleTick
           ));
     }
   }
-
-  // void loadTestCaseData() async {
-  //   final doc = await fireStore
-  //       .collection('users/${currentUser?.uid}/APIs/${selectedProjectIdNotifier.value}/testcasefolders/${testCaseFolders[selectedTestFolderIndex].docId}/testcases')
-  //       .doc(widget.testCase.docId)
-  //       .get();
-  //
-  //   if (doc.exists) {
-  //     final data = doc.data();
-  //     if (data != null) {
-  //       // Предполагаем, что у вас есть TextEditingController для каждого поля
-  //       nameController.text = data['name'];
-  //       urlController.text = data['url'] ?? '';
-  //       descriptionController.text = data['description'] ?? '';
-  //       setState(() {
-  //         fetchedApisID = List<String>.from(data['fetchedApisID'] ?? []);
-  //       });
-  //     }
-  //   }
-  // }
 }

@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:diplom/utils/auth.dart';
 import 'package:diplom/utils/validator.dart';
 
+import '../main.dart';
+
 class Forgot_Widget extends StatefulWidget {
   const Forgot_Widget({super.key});
 
@@ -101,7 +103,7 @@ class _Forgot_WidgetState extends State<Forgot_Widget> {
                       setState(() {
                         _isProcessing = true;
                       });
-                      User? user = await Auth.signInUsingEmailPassword(
+                      currentUser = await Auth.signInUsingEmailPassword(
                         email: _emailTextController.text,
                         password: _passwordTextController.text,
                       );

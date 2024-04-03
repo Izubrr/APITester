@@ -1,14 +1,9 @@
-import 'dart:convert';
 import 'dart:math';
 import 'package:diplom/main.dart';
 import 'package:diplom/pages/api_detail_page.dart';
 import 'package:diplom/pages/test_case_detail_page.dart';
 import 'package:flutter/material.dart';
-import 'package:diplom/widgets/addapi_dialog.dart';
 import 'package:flutter/src/foundation/change_notifier.dart';
-import 'package:flutter_highlight/flutter_highlight.dart';
-import 'package:flutter_highlight/themes/github.dart';
-import 'package:flutter_highlight/themes/monokai-sublime.dart';
 
 // Определение перечисления ApiStatus
 enum ApiStatus {
@@ -168,6 +163,8 @@ enum FilterOption {
   disabled,
 }
 
+late TabController projectPageTabController;
+
 String projectName = 'Project Name';
 List<PathObject> paths = [];
 List<Folder> testCaseFolders = [];
@@ -177,6 +174,7 @@ bool filterEnabled = false;
 int selectedApiIndex = -1;
 int selectedTestFolderIndex = -1;
 ValueNotifier<int> selectedTestCaseIndex = ValueNotifier(-1);
+ValueNotifier<TestCase>? selectedTestCase;
 Map<String, dynamic> responseCodes = {};
 Map<String, dynamic> requestBodyCodes = {};
 bool isFolderEditing = false;
@@ -186,7 +184,6 @@ ValueNotifier<String> testCaseListCurrent = ValueNotifier('folder');
 class _ProjectPageState extends State<ProjectPage>
     with SingleTickerProviderStateMixin {
   void _onSelectedProjectIdChange() {
-    // Устанавливаем selectedApiIndex в -1 при каждом изменении selectedProjectId
     setState(() {
       selectedApiIndex = -1;
       selectedTestCaseIndex.value = -1;
@@ -199,7 +196,7 @@ class _ProjectPageState extends State<ProjectPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    projectPageTabController = TabController(length: 2, vsync: this);
     selectedProjectIdNotifier.addListener(_onSelectedProjectIdChange);
   }
 
@@ -302,8 +299,6 @@ class _ProjectPageState extends State<ProjectPage>
     });
   }
 
-  late TabController _tabController;
-
   final ValueNotifier<FilterOption?> currentFilter = ValueNotifier(null);
 
   int naturalSortComparator(String a, String b) {
@@ -383,7 +378,7 @@ class _ProjectPageState extends State<ProjectPage>
         automaticallyImplyLeading: false,
         title: Text(projectName),
         bottom: TabBar(
-          controller: _tabController,
+          controller: projectPageTabController,
           tabs: const [
             Tab(text: 'APIs', icon: Icon(Icons.api)),
             Tab(text: 'Test Cases', icon: Icon(Icons.bug_report)),
@@ -391,7 +386,7 @@ class _ProjectPageState extends State<ProjectPage>
         ),
       ),
       body: TabBarView(
-        controller: _tabController,
+        controller: projectPageTabController,
         children: [
           Row(
             children: [
@@ -405,22 +400,23 @@ class _ProjectPageState extends State<ProjectPage>
                           Expanded(
                             child: Padding(
                               padding: const EdgeInsets.fromLTRB(8, 8, 0, 0),
-                              child: ElevatedButton(
-                                child: const Text('Add API'),
-                                onPressed: () {
-                                  selectedProjectIdNotifier.value == null
-                                      ? ScaffoldMessenger.of(context)
-                                          .showSnackBar(const SnackBar(
-                                              content: Text(
-                                                  'Please select a project at first')))
-                                      : showDialog(
-                                          context: context,
-                                          builder: (BuildContext context) {
-                                            return AddApiDialog();
-                                          },
-                                        );
-                                },
-                              ),
+                              child: Text('API list count: ${testCases.length}'),
+                              // ElevatedButton(
+                              //   child: const Text('Add API'),
+                              //   onPressed: () {
+                              //     selectedProjectIdNotifier.value == null
+                              //         ? ScaffoldMessenger.of(context)
+                              //             .showSnackBar(const SnackBar(
+                              //                 content: Text(
+                              //                     'Please select a project at first')))
+                              //         : showDialog(
+                              //             context: context,
+                              //             builder: (BuildContext context) {
+                              //               return AddApiDialog();
+                              //             },
+                              //           );
+                              //  },
+                              // ),
                             ),
                           ),
                           Padding(
@@ -739,87 +735,87 @@ class _ProjectPageState extends State<ProjectPage>
                                         content: Text(
                                             'Please finish editing')))
                                         : showDialog(
-                                      context: context,
-                                      builder: (BuildContext context) {
-                                        // Создаем контроллер для текстового поля
-                                        TextEditingController nameController = TextEditingController();
+                                            context: context,
+                                            builder: (BuildContext context) {
+                                              // Создаем контроллер для текстового поля
+                                              TextEditingController nameController = TextEditingController();
 
-                                        // Возвращаем AlertDialog
-                                        return AlertDialog(
-                                          title: const Text('Add New Folder'),
-                                          content: TextField(
-                                            controller: nameController,
-                                            decoration: const InputDecoration(
-                                                hintText: "Enter folder name"),
-                                            autofocus: true,
-                                          ),
-                                          actions: <Widget>[
-                                            TextButton(
-                                              child: const Text('Cancel'),
-                                              onPressed: () {
-                                                Navigator.of(context)
-                                                    .pop(); // Закрыть диалог без сохранения
-                                              },
-                                            ),
-                                            TextButton(
-                                              child: const Text('Add'),
-                                              onPressed: () async {
-                                                final folderName = nameController
-                                                    .text;
+                                              // Возвращаем AlertDialog
+                                              return AlertDialog(
+                                                title: const Text('Add New Folder'),
+                                                content: TextField(
+                                                  controller: nameController,
+                                                  decoration: const InputDecoration(
+                                                      hintText: "Enter folder name"),
+                                                  autofocus: true,
+                                                ),
+                                                actions: <Widget>[
+                                                  TextButton(
+                                                    child: const Text('Cancel'),
+                                                    onPressed: () {
+                                                      Navigator.of(context)
+                                                          .pop(); // Закрыть диалог без сохранения
+                                                    },
+                                                  ),
+                                                  TextButton(
+                                                    child: const Text('Add'),
+                                                    onPressed: () async {
+                                                      final folderName = nameController
+                                                          .text;
 
-                                                // Проверяем, пустое ли имя папки
-                                                if (folderName.isEmpty) {
-                                                  ScaffoldMessenger.of(context)
-                                                      .showSnackBar(
-                                                      const SnackBar(
-                                                        content: Text(
-                                                            'Folder name cannot be empty'),
-                                                      ));
-                                                  // Проверяем, содержится ли уже такое имя в списке
-                                                } else if (testCaseFolders.any((
-                                                    folder) =>
-                                                folder.name == folderName)) {
-                                                  ScaffoldMessenger.of(context)
-                                                      .showSnackBar(
-                                                      const SnackBar(
-                                                        content: Text(
-                                                            'Folder name needs to be unique'),
-                                                      ));
-                                                } else {
-                                                  // Добавление новой папки в список
-                                                  try {
-                                                    final docRef = await fireStore
-                                                        .collection(
-                                                        'users/${currentUser
-                                                            ?.uid}/APIs/${selectedProjectIdNotifier
-                                                            .value}/testcasefolders')
-                                                        .add({
-                                                      'title': folderName
-                                                    });
-                                                    setState(() {
-                                                      testCaseFolders.add(
-                                                          Folder(
-                                                              name: folderName,
-                                                              docId: docRef
-                                                                  .id));
-                                                    });
-                                                  } catch (e) {
-                                                    ScaffoldMessenger.of(
-                                                        context).showSnackBar(
-                                                        SnackBar(
-                                                          content: Text(
-                                                              'Error with adding a folder: $e'),
-                                                        ));
-                                                  }
-                                                  Navigator.of(context)
-                                                      .pop(); // Закрыть диалог после сохранения
-                                                }
-                                              },
-                                            ),
-                                          ],
-                                        );
-                                      },
-                                    );
+                                                      // Проверяем, пустое ли имя папки
+                                                      if (folderName.isEmpty) {
+                                                        ScaffoldMessenger.of(context)
+                                                            .showSnackBar(
+                                                            const SnackBar(
+                                                              content: Text(
+                                                                  'Folder name cannot be empty'),
+                                                            ));
+                                                        // Проверяем, содержится ли уже такое имя в списке
+                                                      } else if (testCaseFolders.any((
+                                                          folder) =>
+                                                      folder.name == folderName)) {
+                                                        ScaffoldMessenger.of(context)
+                                                            .showSnackBar(
+                                                            const SnackBar(
+                                                              content: Text(
+                                                                  'Folder name needs to be unique'),
+                                                            ));
+                                                      } else {
+                                                        // Добавление новой папки в список
+                                                        try {
+                                                          final docRef = await fireStore
+                                                              .collection(
+                                                              'users/${currentUser
+                                                                  ?.uid}/APIs/${selectedProjectIdNotifier
+                                                                  .value}/testcasefolders')
+                                                              .add({
+                                                            'title': folderName
+                                                          });
+                                                          setState(() {
+                                                            testCaseFolders.add(
+                                                                Folder(
+                                                                    name: folderName,
+                                                                    docId: docRef
+                                                                        .id));
+                                                          });
+                                                        } catch (e) {
+                                                          ScaffoldMessenger.of(
+                                                              context).showSnackBar(
+                                                              SnackBar(
+                                                                content: Text(
+                                                                    'Error with adding a folder: $e'),
+                                                              ));
+                                                        }
+                                                        Navigator.of(context)
+                                                            .pop(); // Закрыть диалог после сохранения
+                                                      }
+                                                    },
+                                                  ),
+                                                ],
+                                              );
+                                            },
+                                          );
                                   },
                                 ),
                               ),
@@ -1024,8 +1020,7 @@ class _ProjectPageState extends State<ProjectPage>
                                         deleteItem(
                                             testCaseFolders[selectedTestFolderIndex]
                                                 .testCases[index].docId,
-                                            'users/${currentUser
-                                                ?.uid}/APIs/${selectedProjectIdNotifier
+                                                  'users/${currentUser?.uid}/APIs/${selectedProjectIdNotifier
                                                 .value}/testcasefolders/${testCaseFolders[selectedTestFolderIndex]
                                                 .docId}/testcases',
                                             testCaseFolders[selectedTestFolderIndex]
@@ -1064,19 +1059,17 @@ class _ProjectPageState extends State<ProjectPage>
                 child: ValueListenableBuilder<int>(
                   valueListenable: selectedTestCaseIndex,
                   builder: (context, selectedProjectId, child) {
-                    return selectedProjectIdNotifier.value == null
-                    ? const Center(
-                    child: Text(
-                    'Please select a project to show this content'))
-                        : selectedTestCaseIndex.value == -1
-                    ? const Center(
-                    child: Text(
-                    'Select test case from list to view details'))
-                        : TestCaseDetailPage(
-                      key: ValueKey(testCaseFolders[selectedTestFolderIndex].testCases[selectedTestCaseIndex.value].docId),
-                      testCase: testCaseFolders[selectedTestFolderIndex].testCases[selectedTestCaseIndex.value],
-                    );
+                    if(selectedProjectIdNotifier.value == null) {
+                      return const Center(child: Text('Please select a project to show this content'));
+                    } else if(selectedTestCaseIndex.value == -1) {
+                      return const Center(child: Text('Select test case from list to view details'));
+                    } else {
 
+                      return TestCaseDetailPage(
+                        key: ValueKey(testCases[selectedTestCaseIndex.value].docId),
+                        testCase: testCases[selectedTestCaseIndex.value],
+                      );
+                    }
                   }
                 ),
               ),
