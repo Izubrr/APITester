@@ -4,6 +4,7 @@ import 'package:diplom/pages/api_detail_page.dart';
 import 'package:diplom/pages/test_case_detail_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/src/foundation/change_notifier.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 // Определение перечисления ApiStatus
 enum ApiStatus {

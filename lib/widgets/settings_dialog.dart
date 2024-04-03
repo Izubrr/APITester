@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:diplom/pages/login_page.dart';
 import 'package:diplom/utils/auth.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:diplom/main.dart';
@@ -276,7 +277,32 @@ class _SettingsDialogState extends State<SettingsDialog> {
               ),
               Card(
                 child: ListTile(
-                  leading: const Icon(Icons.sunny),
+                    leading: const Icon(Icons.translate),
+                    title: Text('App_language'.tr()),
+                    subtitle: const Text('Choose your language'),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ElevatedButton(
+                          child: const Text('Russian'),
+                          onPressed: () {
+                            context.setLocale(const Locale('ru', 'RU'));
+                          },
+                        ),
+                        const SizedBox(width: 2,),
+                        ElevatedButton(
+                          child: const Text('English'),
+                          onPressed: () {
+                            context.setLocale(const Locale('en', 'US'));
+                          },
+                        ),
+                      ],
+                    )
+                ),
+              ),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.person),
                   title: const Text('Account settings'),
                   subtitle: const Text('Manage your account settings'),
                   trailing: Row(
@@ -361,7 +387,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
             _isVerifyLoading
                 ? const CircularProgressIndicator()
                 : FilledButton.icon(
-                    icon: Icon(Icons.refresh),
+                    icon: const Icon(Icons.refresh),
                     label: const Text('Update'),
                     onPressed: () async {
                       setState(() => _isVerifyLoading = true);

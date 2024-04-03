@@ -1,5 +1,5 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:diplom/utils/auth.dart';
 import 'package:diplom/utils/validator.dart';
 import 'package:diplom/pages/main_navigation_scaffold.dart';
@@ -41,7 +41,7 @@ class _Login_WidgetState extends State<Login_Widget> {
               filled:
                   true, // Необходимо установить true для использования fillColor
               fillColor: Colors.transparent, // Прозрачный цвет фона
-              hintText: 'Email', // Ваш текст подсказки
+              hintText: 'hint_Email'.tr(), // Ваш текст подсказки
               hintStyle: const TextStyle(
                 color: Color(0xFFB9BABE), // Цвет текста подсказки
               ),
@@ -78,7 +78,7 @@ class _Login_WidgetState extends State<Login_Widget> {
               filled:
                   true, // Необходимо установить true для использования fillColor
               fillColor: Colors.transparent, // Прозрачный цвет фона
-              hintText: 'Password', // Ваш текст подсказки
+              hintText: 'hint_Password'.tr(), // Ваш текст подсказки
               hintStyle: const TextStyle(
                 color: Color(0xFFB9BABE), // Цвет текста подсказки
               ),
@@ -122,7 +122,7 @@ class _Login_WidgetState extends State<Login_Widget> {
                             builder: (context) => MainNavigationScaffold(),
                           ),
                         );
-                      } else print('User is null');
+                      }
                       setState(() {
                         _isProcessing = false;
                       });
@@ -136,7 +136,7 @@ class _Login_WidgetState extends State<Login_Widget> {
                     minimumSize: const Size(
                         double.infinity, 36), // Ширина во весь контейнер
                   ),
-                  child: const Text('Log in'),
+                  child: Text('Login'.tr()),
                 ),
           const SizedBox(height: 12),
         ],

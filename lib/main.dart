@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:diplom/pages/login_page.dart';
@@ -16,8 +17,18 @@ User? currentUser = FirebaseAuth.instance.currentUser;
 final FirebaseFirestore fireStore = FirebaseFirestore.instance;
 String currentApi = "";
 
-void main() {
-  runApp(MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await EasyLocalization.ensureInitialized();
+
+  runApp(
+    EasyLocalization(
+      supportedLocales: const [Locale('en', 'US'), Locale('ru', 'RU')],
+      path: 'lib/assets/translations', // Путь к вашему каталогу с переводами
+      fallbackLocale: const Locale('en', 'US'),
+      child: MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -34,7 +45,10 @@ class MyApp extends StatelessWidget {
             return MaterialApp(
               title: 'Flutter Authentication',
               debugShowCheckedModeBanner: false,
-                scaffoldMessengerKey: scaffoldKey,
+              scaffoldMessengerKey: scaffoldKey,
+              localizationsDelegates: context.localizationDelegates,
+              supportedLocales: context.supportedLocales,
+              locale: context.locale,
               home: LoginPage(),
               theme: ThemeData(
                 useMaterial3: true,

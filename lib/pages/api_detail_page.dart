@@ -167,7 +167,7 @@ class _ApiDetailPageState extends State<ApiDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    List<TestCase> relatedTestCases = testCases.where(
+    List<TestCase>? relatedTestCases = testCases.where(
             (testCase) => testCase.fetchedApisID!.contains(widget.api.pathId)
     ).toList();
 

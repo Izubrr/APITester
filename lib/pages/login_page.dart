@@ -83,7 +83,7 @@ class _LoginPageState extends State<LoginPage> {
           return Container(
             decoration: const BoxDecoration(
               image: DecorationImage(
-                image: AssetImage('lib/images/mountains.jpg'),
+                image: AssetImage('lib/assets/mountains.jpg'),
                 fit: BoxFit.cover,
               ),
             ),
