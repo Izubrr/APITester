@@ -236,7 +236,7 @@ class _ApiDetailPageState extends State<ApiDetailPage> {
                               }
                             },
                             decoration: const InputDecoration(
-                              hintText: 'Description',
+                              hintText: 'Description'.tr(),
                             ),
                           ),
                         ),

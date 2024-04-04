@@ -72,7 +72,7 @@ class _Forgot_WidgetState extends State<Forgot_Widget> {
               filled:
                   true, // Необходимо установить true для использования fillColor
               fillColor: Colors.transparent, // Прозрачный цвет фона
-              hintText: 'Email', // Ваш текст подсказки
+              hintText: 'Email'.tr(), // Ваш текст подсказки
               hintStyle: const TextStyle(
                 color: Color(0xFFB9BABE), // Цвет текста подсказки
               ),
