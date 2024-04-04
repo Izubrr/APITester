@@ -4,7 +4,6 @@ import 'package:diplom/pages/api_detail_page.dart';
 import 'package:diplom/pages/test_case_detail_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/src/foundation/change_notifier.dart';
-import 'package:easy_localization/easy_localization.dart';
 
 // Определение перечисления ApiStatus
 enum ApiStatus {
@@ -189,6 +188,7 @@ class _ProjectPageState extends State<ProjectPage>
       selectedApiIndex = -1;
       selectedTestCaseIndex.value = -1;
       testCaseFolders = [];
+      testCases = [];
       paths = [];
       apiDataCache = {};
     });
@@ -204,6 +204,8 @@ class _ProjectPageState extends State<ProjectPage>
   Map<String, List<PathObject>> taggedApis = {};
 
   Future<void> fetchProjectData() async {
+    _isFetchProjectDataLoading = true;
+
     List<String> fetches;
 
     final apiRef = fireStore
@@ -297,6 +299,7 @@ class _ProjectPageState extends State<ProjectPage>
     setState(() {
       taggedApis = tempTaggedApis;
       updateProjectPage = false;
+      _isFetchProjectDataLoading = false;
     });
   }
 
@@ -372,6 +375,8 @@ class _ProjectPageState extends State<ProjectPage>
     }
   }
 
+  bool _isFetchProjectDataLoading = false;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -401,7 +406,7 @@ class _ProjectPageState extends State<ProjectPage>
                           Expanded(
                             child: Padding(
                               padding: const EdgeInsets.fromLTRB(8, 8, 0, 0),
-                              child: Text('API list count: ${testCases.length}'),
+                              child: Text('API list count: ${paths.length}'),
                               // ElevatedButton(
                               //   child: const Text('Add API'),
                               //   onPressed: () {
@@ -563,15 +568,14 @@ class _ProjectPageState extends State<ProjectPage>
                                     valueListenable: selectedProjectIdNotifier,
                                     builder:
                                         (context, selectedProjectId, child) {
-                                      if (selectedProjectId != null &&
-                                          updateProjectPage) {
-                                        fetchProjectData(); // Асинхронно загружаем данные
-                                        // Центрирование CircularProgressIndicator
-                                        return const Expanded(
-                                          child: Center(
-                                            child: CircularProgressIndicator(),
-                                          ),
-                                        );
+                                      if (selectedProjectId != null && updateProjectPage && !_isFetchProjectDataLoading) {
+                                          fetchProjectData(); // Асинхронно загружаем данные
+                                          // Центрирование CircularProgressIndicator
+                                          return const Expanded(
+                                            child: Center(
+                                              child: CircularProgressIndicator(),
+                                            ),
+                                          );
                                       }
                                       // Возвращаем список API, когда данные доступны
                                       return !filterEnabled

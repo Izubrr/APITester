@@ -285,15 +285,17 @@ class _SettingsDialogState extends State<SettingsDialog> {
                       children: [
                         ElevatedButton(
                           child: const Text('Russian'),
-                          onPressed: () {
-                            context.setLocale(const Locale('ru', 'RU'));
+                          onPressed: () async {
+                            await saveLocale(const Locale('ru', 'RU')); // Сохранение выбранного языка
+                            context.setLocale(const Locale('ru', 'RU')); // Применение выбранного языка
                           },
                         ),
-                        const SizedBox(width: 2,),
+                        const SizedBox(width: 8),
                         ElevatedButton(
                           child: const Text('English'),
-                          onPressed: () {
-                            context.setLocale(const Locale('en', 'US'));
+                          onPressed: () async {
+                            await saveLocale(const Locale('en', 'US')); // Сохранение выбранного языка
+                            context.setLocale(const Locale('en', 'US')); // Применение выбранного языка
                           },
                         ),
                       ],
@@ -320,6 +322,8 @@ class _SettingsDialogState extends State<SettingsDialog> {
                         onPressed: () async {
                           await FirebaseAuth.instance.signOut();
                           currentUser = null;
+                          selectedProjectIdNotifier.value = '-1';
+                          navRailDestinations.value = [];
                           Navigator.of(context).pushReplacement(
                             MaterialPageRoute(
                               builder: (context) => LoginPage(),
@@ -447,16 +451,20 @@ class _SettingsDialogState extends State<SettingsDialog> {
 
         // Удаляем аккаунт пользователя
         await FirebaseAuth.instance.currentUser?.delete();
-
         // Переходим на страницу входа после удаления аккаунта
+
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (context) => LoginPage(), // LoginPage должен быть вашим виджетом страницы входа
+            builder: (context) => LoginPage(),
           ),
         );
+        setState(() {
+          currentUser = null;
+        });
+        selectedProjectIdNotifier.value = '-1';
+        navRailDestinations.value = [];
       } catch (e) {
         print('Error deleting account: $e');
-        // Здесь может быть дополнительная обработка ошибок, например, показ сообщения об ошибке
       }
     }
   }

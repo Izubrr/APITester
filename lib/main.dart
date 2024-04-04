@@ -21,11 +21,21 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await EasyLocalization.ensureInitialized();
 
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+
+  Locale? savedLocale;
+  String? savedLanguageCode = prefs.getString('languageCode');
+  String? savedCountryCode = prefs.getString('countryCode');
+  if (savedLanguageCode != null) {
+    savedLocale = Locale(savedLanguageCode, savedCountryCode);
+  }
+
   runApp(
     EasyLocalization(
       supportedLocales: const [Locale('en', 'US'), Locale('ru', 'RU')],
-      path: 'lib/assets/translations', // Путь к вашему каталогу с переводами
+      path: 'lib/assets/translations',
       fallbackLocale: const Locale('en', 'US'),
+      startLocale: savedLocale, // Установка сохраненной локали как начальной
       child: MyApp(),
     ),
   );
@@ -60,6 +70,15 @@ class MyApp extends StatelessWidget {
         );
       },
     );
+  }
+}
+
+
+Future<void> saveLocale(Locale locale) async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString('languageCode', locale.languageCode);
+  if (locale.countryCode != null) {
+    await prefs.setString('countryCode', locale.countryCode!);
   }
 }
 

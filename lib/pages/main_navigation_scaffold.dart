@@ -28,6 +28,7 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold> with Ti
   bool _isLoading = true;
 
   Future<List<ApiDestination>> fetchApiTitlesAndIcons() async {
+    print('fetchApiTitlesAndIcons');
     _isLoading = true;
     try {
       final apiCollection = await fireStore.collection('users/${currentUser?.uid}/APIs').get();
@@ -81,55 +82,66 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold> with Ti
               return ValueListenableBuilder<List<ApiDestination>>(
                 valueListenable: navRailDestinations,
                 builder: (context, value, child) {
-                  return NavigationRail(
-                    backgroundColor: ElevationOverlay.applySurfaceTint(
-                        Theme.of(context).colorScheme.background,
-                        Theme.of(context).colorScheme.primary,
-                        3
-                    ),
-                    onDestinationSelected: (index) {
-                      setState(() {
-                        _selectedIndex = index;
-                        selectedProjectIdNotifier.value = value[index].id; // Сохранение ID выбранного API
-                        updateProjectPage = true;
-                      });
-                    },
-                    selectedIndex: _selectedIndex,
-                    labelType: labelType,
-                    leading: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: FloatingActionButton(
-                        onPressed: () {
-                          showDialog(
-                            context: context,
-                            builder: (BuildContext context) {
-                              return CreateProjectDialog();
-                            },
-                          );
-                        },
-                        child: const Icon(Icons.add),
+                  return SingleChildScrollView(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        // Установите минимальную высоту, достаточную для вмещения всех элементов NavigationRail
+                        minHeight: MediaQuery.of(context).size.height,
                       ),
-                    ),
-                    trailing: Expanded(
-                      child: Align(
-                        alignment: Alignment.bottomCenter,
-                        child: Padding(
-                          padding: const EdgeInsets.only(bottom: 8.0),
-                          child: IconButton(
-                            onPressed: () {
-                              showDialog(
-                                context: context,
-                                builder: (BuildContext context) {
-                                  return SettingsDialog();
-                                },
-                              );
-                            },
-                            icon: const Icon(Icons.settings),
+                      child: IntrinsicHeight(
+                        child: NavigationRail(
+                          backgroundColor: ElevationOverlay.applySurfaceTint(
+                              Theme.of(context).colorScheme.background,
+                              Theme.of(context).colorScheme.primary,
+                              3
                           ),
+                          onDestinationSelected: (index) {
+                            setState(() {
+                              _selectedIndex = index;
+                              selectedProjectIdNotifier.value = '-1';
+                              selectedProjectIdNotifier.value = value[index].id; // Сохранение ID выбранного проекта
+                              updateProjectPage = true;
+                            });
+                          },
+                          selectedIndex: _selectedIndex,
+                          labelType: labelType,
+                          leading: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: FloatingActionButton(
+                              onPressed: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (BuildContext context) {
+                                    return CreateProjectDialog();
+                                  },
+                                );
+                              },
+                              child: const Icon(Icons.add),
+                            ),
+                          ),
+                          trailing: Expanded(
+                            child: Align(
+                              alignment: Alignment.bottomCenter,
+                              child: Padding(
+                                padding: const EdgeInsets.only(bottom: 8.0),
+                                child: IconButton(
+                                  onPressed: () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (BuildContext context) {
+                                        return SettingsDialog();
+                                      },
+                                    );
+                                  },
+                                  icon: const Icon(Icons.settings),
+                                ),
+                              ),
+                            ),
+                          ),
+                          destinations: value.map((apiDest) => apiDest.destination).toList(),
                         ),
                       ),
                     ),
-                    destinations: value.map((apiDest) => apiDest.destination).toList(),
                   );
                 },
               );
