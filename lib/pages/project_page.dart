@@ -747,7 +747,7 @@ class _ProjectPageState extends State<ProjectPage>
                                                 content: TextField(
                                                   controller: nameController,
                                                   decoration: const InputDecoration(
-                                                      hintText: "Enter folder name"),
+                                                      hintText: "Enter folder name".tr()),
                                                   autofocus: true,
                                                 ),
                                                 actions: <Widget>[
@@ -922,7 +922,7 @@ class _ProjectPageState extends State<ProjectPage>
                                           content: TextField(
                                             controller: nameController,
                                             decoration: const InputDecoration(
-                                                hintText: "Enter testcase name"),
+                                                hintText: "Enter testcase name".tr()),
                                             autofocus: true,
                                           ),
                                           actions: <Widget>[

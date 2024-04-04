@@ -160,7 +160,7 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
             children: [
               DropdownMenu<IconLabel>(
                 width: 100,
-                hintText: 'Icon',
+                hintText: 'Icon'.tr(),
                 inputDecorationTheme: const InputDecorationTheme(
                   contentPadding: EdgeInsets.symmetric(vertical: 5.0),
                 ),
@@ -188,7 +188,7 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
                   child: TextField(
                     controller: _projectNameController,
                     decoration: const InputDecoration(
-                      hintText: 'Project Name',
+                      hintText: 'Project Name'.tr(),
                     ),
                   ),
                 ),

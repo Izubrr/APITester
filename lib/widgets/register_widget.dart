@@ -44,7 +44,7 @@ class _Register_WidgetState extends State<Register_Widget> {
               filled:
                   true, // Необходимо установить true для использования fillColor
               fillColor: Colors.transparent, // Прозрачный цвет фона
-              hintText: 'Username', // Ваш текст подсказки
+              hintText: 'Username'.tr(), // Ваш текст подсказки
               hintStyle: const TextStyle(
                 color: Color(0xFFB9BABE), // Цвет текста подсказки
               ),
@@ -80,7 +80,7 @@ class _Register_WidgetState extends State<Register_Widget> {
               filled:
                   true, // Необходимо установить true для использования fillColor
               fillColor: Colors.transparent, // Прозрачный цвет фона
-              hintText: 'Email', // Ваш текст подсказки
+              hintText: 'Email'.tr(), // Ваш текст подсказки
               hintStyle: const TextStyle(
                 color: Color(0xFFB9BABE), // Цвет текста подсказки
               ),
@@ -117,7 +117,7 @@ class _Register_WidgetState extends State<Register_Widget> {
               filled:
                   true, // Необходимо установить true для использования fillColor
               fillColor: Colors.transparent, // Прозрачный цвет фона
-              hintText: 'Password', // Ваш текст подсказки
+              hintText: 'Password'.tr(), // Ваш текст подсказки
               hintStyle: const TextStyle(
                 color: Color(0xFFB9BABE), // Цвет текста подсказки
               ),
@@ -153,7 +153,7 @@ class _Register_WidgetState extends State<Register_Widget> {
               filled:
                   true, // Необходимо установить true для использования fillColor
               fillColor: Colors.transparent, // Прозрачный цвет фона
-              hintText: 'Repeat Password', // Ваш текст подсказки
+              hintText: 'Repeat Password'.tr(), // Ваш текст подсказки
               hintStyle: const TextStyle(
                 color: Color(0xFFB9BABE), // Цвет текста подсказки
               ),

@@ -132,7 +132,7 @@ class _TestCaseDetailPageState extends State<TestCaseDetailPage> with SingleTick
                       width: 8,
                     ),
                     SearchAnchor.bar(
-                      barHintText: 'Search API',
+                      barHintText: 'Search API'.tr(),
                       suggestionsBuilder:
                           (BuildContext context, SearchController controller) {
                         if (controller.text.isEmpty) {
@@ -207,7 +207,7 @@ class _TestCaseDetailPageState extends State<TestCaseDetailPage> with SingleTick
                           controller: urlController,
                           decoration: const InputDecoration(
                             icon: Icon(Icons.link),
-                            hintText: 'Input url to TMS',
+                            hintText: 'Input url to TMS'.tr(),
                           ),
                         ),
                         const SizedBox(height: 24),
@@ -219,7 +219,7 @@ class _TestCaseDetailPageState extends State<TestCaseDetailPage> with SingleTick
                           controller: descriptionController,
                           decoration: const InputDecoration(
                             icon: Icon(Icons.text_snippet_outlined),
-                            hintText: 'Input Description',
+                            hintText: 'Input Description'.tr(),
                           ),
                         ),
                         const SizedBox(height: 8),

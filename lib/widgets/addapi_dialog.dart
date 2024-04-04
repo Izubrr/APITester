@@ -51,7 +51,7 @@ class _AddApiDialogState extends State<AddApiDialog> {
             children: [
               DropdownMenu<ApiMethodType>(
                 width: 100,
-                hintText: 'Method',
+                hintText: 'Method'.tr(),
                 requestFocusOnTap: false,
                 inputDecorationTheme: InputDecorationTheme(
                   //filled: true,
@@ -72,7 +72,7 @@ class _AddApiDialogState extends State<AddApiDialog> {
                   width: 80,
                   child: TextField(
                     decoration: InputDecoration(
-                      hintText: 'Endpoint',
+                      hintText: 'Endpoint'.tr(),
                     ),
                   ),
                 ),

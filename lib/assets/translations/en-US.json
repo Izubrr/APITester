@@ -1,6 +1,19 @@
 {
   "hint_Email": "Email",
+  "Email": "Email",
   "hint_Password": "Password",
   "Login": "Log in",
-  "App_language": "App language"
+  "App_language": "App language",
+  "Description": "Description",
+  "Input url to TMS": "Input url to TMS",
+  "Username": "Username",
+  "Endpoint": "Endpoint",
+  "Project Name": "Project Name",
+  "Input Description": "Input Description",
+  "Method": "Method",
+  "Icon": "Icon",
+  "Enter folder name": "Enter folder name",
+  "Search API": "Search API",
+  "Enter testcase name": "Enter testcase name",
+  "Repeat Password": "Repeat Password"
 }
