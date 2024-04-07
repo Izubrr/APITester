@@ -2,6 +2,7 @@ import 'package:diplom/widgets/switch_text.dart';
 import 'package:diplom/widgets/register_widget.dart';
 import 'package:diplom/widgets/login_widget.dart';
 import 'package:diplom/widgets/forgot_widget.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:diplom/firebase_options.dart';
@@ -63,13 +64,13 @@ class _LoginPageState extends State<LoginPage> {
   String get signTitle {
     switch (_signInState) {
       case SignInState.logIn:
-        return 'Log in MyApp';
+        return 'Log in MyApp'.tr();
       case SignInState.signUp:
-        return 'Sign up MyApp';
+        return 'Sign up MyApp'.tr();
       case SignInState.resetPassword:
-        return 'Reset Password';
+        return 'Reset Password'.tr();
       default:
-        return 'Log in MyApp';
+        return 'Log in MyApp'.tr();
     }
   }
 
@@ -83,7 +84,7 @@ class _LoginPageState extends State<LoginPage> {
           return Container(
             decoration: const BoxDecoration(
               image: DecorationImage(
-                image: AssetImage('lib/assets/mountains.jpg'),
+                image: AssetImage('assets/mountains.jpg'),
                 fit: BoxFit.cover,
               ),
             ),
@@ -157,9 +158,9 @@ class _LoginPageState extends State<LoginPage> {
                               _signInState = SignInState.resetPassword;
                             });
                           },
-                          child: const Text(
-                            'Forgot Password?',
-                            style: TextStyle(
+                          child: Text(
+                            'Forgot Password?'.tr(),
+                            style: const TextStyle(
                                 decoration: TextDecoration.underline,
                                 color: Colors.blueAccent),
                           ),

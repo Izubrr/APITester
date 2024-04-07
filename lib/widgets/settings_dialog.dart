@@ -42,7 +42,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                             .color), // Иконка настроек
                     const SizedBox(width: 8), // Отступ между иконкой и текстом
                     Text(
-                      'Settings',
+                      'Settings'.tr(),
                       style: Theme.of(context).textTheme.titleLarge, // Стиль заголовка согласно текущей теме
                     ),
                   ],
@@ -51,9 +51,9 @@ class _SettingsDialogState extends State<SettingsDialog> {
               Card(
                 child: ListTile(
                   leading: const Icon(Icons.label_important),
-                  title: const Text('Project label in side bar'),
-                  subtitle: const Text(
-                      'All - show labels always; selected - show label only of selected project'),
+                  title: Text('Project label in side bar'.tr()),
+                  subtitle: Text(
+                      'show_labels_settings'.tr()),
                   trailing: DropdownButtonHideUnderline(
                     child: ValueListenableBuilder<NavigationRailLabelType>(
                       valueListenable: labelTypeNotifier,
@@ -68,15 +68,15 @@ class _SettingsDialogState extends State<SettingsDialog> {
                               saveSettings();
                             }
                           },
-                          hint: const Text("Choose label type"),
-                          items: const [
+                          hint: Text("Choose label type".tr()),
+                          items: [
                             DropdownMenuItem(
                               value: NavigationRailLabelType.all,
-                              child: Text('All'),
+                              child: Text('All'.tr()),
                             ),
                             DropdownMenuItem(
                               value: NavigationRailLabelType.selected,
-                              child: Text('Selected'),
+                              child: Text('Selected'.tr()),
                             ),
                           ],
                         );
@@ -89,9 +89,9 @@ class _SettingsDialogState extends State<SettingsDialog> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-                    const ListTile(
+                    ListTile(
                       leading: Icon(Icons.color_lens),
-                      title: Text('Color of the app'),
+                      title: Text('Color of the app'.tr()),
                     ),
                     Padding(
                       padding: const EdgeInsets.only(left: 40),
@@ -102,7 +102,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                               Padding(
                                 padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
                                 child: Tooltip(
-                                  message: 'M3 Baseline',
+                                  message: 'M3 Baseline'.tr(),
                                   child: Radio<Color>(
                                     value: const Color(0xFF6750A4),
                                     groupValue: mainThemeColorNotifier.value,
@@ -119,7 +119,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                               Padding(
                                 padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
                                 child: Tooltip(
-                                  message: 'Indigo',
+                                  message: 'Indigo'.tr(),
                                   child: Radio<Color>(
                                     value: Colors.indigo,
                                     groupValue: mainThemeColorNotifier.value,
@@ -136,7 +136,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                               Padding(
                                 padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
                                 child: Tooltip(
-                                  message: 'Blue',
+                                  message: 'Blue'.tr(),
                                   child: Radio<Color>(
                                     value: Colors.blue,
                                     groupValue: mainThemeColorNotifier.value,
@@ -153,7 +153,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                               Padding(
                                 padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
                                 child: Tooltip(
-                                  message: 'Teal',
+                                  message: 'Teal'.tr(),
                                   child: Radio<Color>(
                                     value: Colors.teal,
                                     groupValue: mainThemeColorNotifier.value,
@@ -170,7 +170,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                               Padding(
                                 padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
                                 child: Tooltip(
-                                  message: 'Green',
+                                  message: 'Green'.tr(),
                                   child: Radio<Color>(
                                     value: Colors.green,
                                     groupValue: mainThemeColorNotifier.value,
@@ -187,7 +187,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                               Padding(
                                 padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
                                 child: Tooltip(
-                                  message: 'Yellow',
+                                  message: 'Yellow'.tr(),
                                   child: Radio<Color>(
                                     value: Colors.yellow,
                                     groupValue: mainThemeColorNotifier.value,
@@ -204,7 +204,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                               Padding(
                                 padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
                                 child: Tooltip(
-                                  message: 'Orange',
+                                  message: 'Orange'.tr(),
                                   child: Radio<Color>(
                                     value: Colors.orange,
                                     groupValue: mainThemeColorNotifier.value,
@@ -221,7 +221,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                               Padding(
                                 padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
                                 child: Tooltip(
-                                  message: 'Deep Orange',
+                                  message: 'Deep Orange'.tr(),
                                   child: Radio<Color>(
                                     value: Colors.deepOrange,
                                     groupValue: mainThemeColorNotifier.value,
@@ -238,7 +238,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                               Padding(
                                 padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
                                 child: Tooltip(
-                                  message: 'Pink',
+                                  message: 'Pink'.tr(),
                                   child: Radio<Color>(
                                     value: Colors.pink,
                                     groupValue: mainThemeColorNotifier.value,
@@ -263,9 +263,9 @@ class _SettingsDialogState extends State<SettingsDialog> {
               Card(
                 child: ListTile(
                   leading: const Icon(Icons.sunny),
-                  title: const Text('App Theme'),
-                  subtitle: const Text(
-                      'Left - light theme; Right - dark theme'),
+                  title: Text('App Theme'.tr()),
+                  subtitle: Text(
+                      'Left - light theme; Right - dark theme'.tr()),
                   trailing: Switch(
                     value: isDarkThemeNotifier.value,
                     onChanged: (bool value) {
@@ -279,14 +279,14 @@ class _SettingsDialogState extends State<SettingsDialog> {
                 child: ListTile(
                     leading: const Icon(Icons.translate),
                     title: Text('App_language'.tr()),
-                    subtitle: const Text('Choose your language'),
+                    subtitle: Text('Choose your language'.tr()),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         ElevatedButton(
                           child: const Text('Russian'),
                           onPressed: () async {
-                            await saveLocale(const Locale('ru', 'RU')); // Сохранение выбранного языка
+                            await saveLanguage(const Locale('ru', 'RU')); // Сохранение выбранного языка
                             context.setLocale(const Locale('ru', 'RU')); // Применение выбранного языка
                           },
                         ),
@@ -294,7 +294,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                         ElevatedButton(
                           child: const Text('English'),
                           onPressed: () async {
-                            await saveLocale(const Locale('en', 'US')); // Сохранение выбранного языка
+                            await saveLanguage(const Locale('en', 'US')); // Сохранение выбранного языка
                             context.setLocale(const Locale('en', 'US')); // Применение выбранного языка
                           },
                         ),
@@ -305,20 +305,20 @@ class _SettingsDialogState extends State<SettingsDialog> {
               Card(
                 child: ListTile(
                   leading: const Icon(Icons.person),
-                  title: const Text('Account settings'),
-                  subtitle: const Text('Manage your account settings'),
+                  title: Text('Account settings'.tr()),
+                  subtitle: Text('Manage your account settings'.tr()),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       ElevatedButton(
-                        child: const Text('Delete Account'),
+                        child: Text('Delete Account'.tr()),
                         onPressed: () async {
                           deleteAccount();
                         },
                       ),
                       const SizedBox(width: 2,),
                       ElevatedButton(
-                        child: const Text('Sign out'),
+                        child: Text('Sign out'.tr()),
                         onPressed: () async {
                           await FirebaseAuth.instance.signOut();
                           currentUser = null;
@@ -334,9 +334,10 @@ class _SettingsDialogState extends State<SettingsDialog> {
                       const SizedBox(width: 2,),
                       FilledButton(
                         onPressed: !currentUser!.emailVerified ? () async {
+                          currentUser?.sendEmailVerification();
                           verifyEmail();
                         } : null,
-                        child: const Text('Verify email')
+                        child: Text('Verify email'.tr())
                       ),
                     ],
                   )
@@ -350,7 +351,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                     onPressed: () {
                       Navigator.pop(context);
                     },
-                    child: const Text("Close"),
+                    child: Text("Close".tr()),
                   ),
                 ),
               ),
@@ -366,23 +367,22 @@ class _SettingsDialogState extends State<SettingsDialog> {
     await showDialog(
       context: context,
       builder: (BuildContext dialogContext) => AlertDialog(
-        title: const Text('Verify Your Email'),
+        title: Text('Verify Your Email'.tr()),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('A verification link has been sent to your email account —'
-                '\nPlease check your email and click on the link to verify your email address.'),
+            Text('verification_link_has_been_sent'.tr()),
             Card(
               child: ListTile(
                 leading: isEmailVerified ? const Icon( Icons.check, color: Colors.green,) : const Icon(Icons.close),
-                title: Text('Verification Status: ${isEmailVerified ? 'done - Now refresh this page' : 'not done'}'),
+                title: Text(isEmailVerified ? 'verification_status_done'.tr() : 'verification_status_not_done'.tr()),
               ),
             ),
           ],
         ),
         actions: <Widget>[
           TextButton(
-            child: const Text('Close'),
+            child: Text('Close'.tr()),
             onPressed: () {
               Navigator.of(dialogContext).pop(); // Закрывает диалоговое окно, используя dialogContext
             },
@@ -392,7 +392,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                 ? const CircularProgressIndicator()
                 : FilledButton.icon(
                     icon: const Icon(Icons.refresh),
-                    label: const Text('Update'),
+                    label: Text('Update'.tr()),
                     onPressed: () async {
                       setState(() => _isVerifyLoading = true);
                       await Auth.refreshUser(currentUser!);
@@ -409,7 +409,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                     },
                   ),
           ] else ...[
-            const Text('Your Email is verified'),
+            Text('Your Email is verified'.tr()),
           ],
         ],
       ),
@@ -422,19 +422,19 @@ class _SettingsDialogState extends State<SettingsDialog> {
     final bool? confirmDelete = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) => AlertDialog(
-        title: const Text('Delete Account'),
-        content: const Text('Are you sure you want to delete your account? This action cannot be undone.'),
+        title: Text('Delete Account'.tr()),
+        content: Text('delete_account_confirm'.tr()),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text('Cancel'.tr()),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Delete'),
             style: TextButton.styleFrom(
               foregroundColor: Colors.red, // Make delete text red to indicate a destructive action
             ),
+            child: Text('Delete'.tr()),
           ),
         ],
       ),
@@ -464,7 +464,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
         selectedProjectIdNotifier.value = '-1';
         navRailDestinations.value = [];
       } catch (e) {
-        print('Error deleting account: $e');
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error deleting account: '.tr() + e.toString())));
       }
     }
   }

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:diplom/pages/project_page.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 import '../main.dart';
@@ -121,7 +122,7 @@ class _TestCaseDetailPageState extends State<TestCaseDetailPage> with SingleTick
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   // Выравнивание по правому краю
                   children: [
-                    Text('Selected TestCase:   ', style: Theme.of(context).textTheme.titleLarge),
+                    Text('Selected TestCase:   '.tr(), style: Theme.of(context).textTheme.titleLarge),
                     Expanded(
                       child: TextField(
                         controller: nameController,
@@ -152,9 +153,9 @@ class _TestCaseDetailPageState extends State<TestCaseDetailPage> with SingleTick
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Fetched APIs',
-                            style: TextStyle(
+                          Text(
+                            'Fetched APIs'.tr(),
+                            style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 18,
                             ),
@@ -190,9 +191,9 @@ class _TestCaseDetailPageState extends State<TestCaseDetailPage> with SingleTick
                 const SizedBox(height: 8),
                 Card(
                   child: ListTile(
-                    title: const Text(
-                      'Description',
-                      style: TextStyle(
+                    title: Text(
+                      'Description'.tr(),
+                      style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
                       ),
@@ -202,23 +203,23 @@ class _TestCaseDetailPageState extends State<TestCaseDetailPage> with SingleTick
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: 16),
-                        const Text('TestCase URL from test managing system'),
+                        Text('TestCase URL from test managing system'.tr()),
                         TextField(
                           controller: urlController,
-                          decoration: const InputDecoration(
-                            icon: Icon(Icons.link),
+                          decoration: InputDecoration(
+                            icon: const Icon(Icons.link),
                             hintText: 'Input url to TMS'.tr(),
                           ),
                         ),
                         const SizedBox(height: 24),
-                        const Text('Description of the testcase'),
+                        Text('Description of the testcase'.tr()),
                         TextField(
                           minLines: 1,
                           maxLines: 5,
                           keyboardType: TextInputType.multiline,
                           controller: descriptionController,
-                          decoration: const InputDecoration(
-                            icon: Icon(Icons.text_snippet_outlined),
+                          decoration: InputDecoration(
+                            icon: const Icon(Icons.text_snippet_outlined),
                             hintText: 'Input Description'.tr(),
                           ),
                         ),
@@ -233,7 +234,7 @@ class _TestCaseDetailPageState extends State<TestCaseDetailPage> with SingleTick
                   // Выравнивание по правому краю
                   children: [
                     TextButton(
-                      child: const Text('Cancel'),
+                      child: Text('Cancel'.tr()),
                       onPressed: () {
                         setState(() {
                           nameController =
@@ -255,7 +256,7 @@ class _TestCaseDetailPageState extends State<TestCaseDetailPage> with SingleTick
                         : FilledButton.icon(
                             key: const ValueKey('button'),
                             icon: const Icon(Icons.check),
-                            label: const Text('Save Changes'),
+                            label: Text('Save Changes'.tr()),
                             onPressed: () {
                               setState(() {
                                 showCheckmark = true;
@@ -293,7 +294,7 @@ class _TestCaseDetailPageState extends State<TestCaseDetailPage> with SingleTick
           context).showSnackBar(
           SnackBar(
             content: Text(
-                'Error with adding a testcase: $e'),
+                'Error with adding a testcase: '.tr() + e.toString()),
           ));
     }
   }

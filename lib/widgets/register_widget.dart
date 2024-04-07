@@ -1,10 +1,9 @@
 import 'package:diplom/main.dart';
 import 'package:diplom/pages/main_navigation_scaffold.dart';
 import 'package:diplom/utils/auth.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:diplom/utils/validator.dart';
-import 'package:flutter/services.dart';
 
 class Register_Widget extends StatefulWidget {
   const Register_Widget({super.key, required this.color});
@@ -117,7 +116,7 @@ class _Register_WidgetState extends State<Register_Widget> {
               filled:
                   true, // Необходимо установить true для использования fillColor
               fillColor: Colors.transparent, // Прозрачный цвет фона
-              hintText: 'Password'.tr(), // Ваш текст подсказки
+              hintText: 'hint_Password'.tr(), // Ваш текст подсказки
               hintStyle: const TextStyle(
                 color: Color(0xFFB9BABE), // Цвет текста подсказки
               ),
@@ -213,7 +212,7 @@ class _Register_WidgetState extends State<Register_Widget> {
                 minimumSize:
                     const Size(double.infinity, 36), // Ширина во весь контейнер
               ),
-              child: const Text('Sign up'),
+              child: Text('Sign up'.tr()),
             ),
         ],
       ),

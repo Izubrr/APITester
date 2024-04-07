@@ -2,8 +2,8 @@ import 'dart:math';
 import 'package:diplom/main.dart';
 import 'package:diplom/pages/api_detail_page.dart';
 import 'package:diplom/pages/test_case_detail_page.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/src/foundation/change_notifier.dart';
 
 // Определение перечисления ApiStatus
 enum ApiStatus {
@@ -116,7 +116,6 @@ class PathObject {
   String summary;
   String description;
   String operationId;
-  Map<String, dynamic> requestBody;
   List<dynamic> responses;
   List<String> fetchedTestCaseId;
 
@@ -129,7 +128,6 @@ class PathObject {
       this.status = ApiStatus.inProgress,
       this.summary = '',
       this.description = '',
-      this.requestBody = const {'1': "Tom", '2': "Bob", '3': "Sam"},
       this.fetchedTestCaseId = const [],
       this.responses = const []});
 }
@@ -165,7 +163,7 @@ enum FilterOption {
 
 late TabController projectPageTabController;
 
-String projectName = 'Project Name';
+String projectName = 'Project Name'.tr();
 List<PathObject> paths = [];
 List<Folder> testCaseFolders = [];
 List<TestCase> testCases = [];
@@ -351,7 +349,7 @@ class _ProjectPageState extends State<ProjectPage>
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Failed to rename item: $e'),
+        content: Text('Failed to rename item: '.tr() + e.toString()),
       ));
     }
   }
@@ -370,7 +368,7 @@ class _ProjectPageState extends State<ProjectPage>
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Failed to delete item: $e'),
+        content: Text('Failed to delete item: '.tr() + e.toString()),
       ));
     }
   }
@@ -385,9 +383,9 @@ class _ProjectPageState extends State<ProjectPage>
         title: Text(projectName),
         bottom: TabBar(
           controller: projectPageTabController,
-          tabs: const [
-            Tab(text: 'APIs', icon: Icon(Icons.api)),
-            Tab(text: 'Test Cases', icon: Icon(Icons.bug_report)),
+          tabs: [
+            Tab(text: 'APIs'.tr(), icon: const Icon(Icons.api)),
+            Tab(text: 'Test Cases'.tr(), icon: const Icon(Icons.bug_report)),
           ],
         ),
       ),
@@ -406,7 +404,7 @@ class _ProjectPageState extends State<ProjectPage>
                           Expanded(
                             child: Padding(
                               padding: const EdgeInsets.fromLTRB(8, 8, 0, 0),
-                              child: Text('API list count: ${paths.length}'),
+                              child: Text('API list count: '.tr() + paths.length.toString()),
                               // ElevatedButton(
                               //   child: const Text('Add API'),
                               //   onPressed: () {
@@ -431,10 +429,7 @@ class _ProjectPageState extends State<ProjectPage>
                               icon: const Icon(Icons.filter_list),
                               onSelected: (FilterOption result) {
                                 selectedProjectIdNotifier.value == null
-                                    ? ScaffoldMessenger.of(context)
-                                        .showSnackBar(const SnackBar(
-                                            content: Text(
-                                                'Please select a project at first')))
+                                    ? ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Please select a project at first'.tr())))
                                     : currentFilter.value = result;
                               },
                               itemBuilder: (BuildContext context) =>
@@ -467,17 +462,17 @@ class _ProjectPageState extends State<ProjectPage>
                                   value: FilterOption.getByMethodHEAD,
                                   child: Text('HEAD'),
                                 ),
-                                const PopupMenuItem<FilterOption>(
+                                PopupMenuItem<FilterOption>(
                                   value: FilterOption.orderByEndpoint,
-                                  child: Text('Endpoint'),
+                                  child: Text('Endpoint'.tr()),
                                 ),
-                                const PopupMenuItem<FilterOption>(
+                                PopupMenuItem<FilterOption>(
                                   value: FilterOption.orderByStatus,
-                                  child: Text('Status'),
+                                  child: Text('Status'.tr()),
                                 ),
-                                const PopupMenuItem(
+                                PopupMenuItem(
                                   value: FilterOption.disabled,
-                                  child: Text('Disable Filter'),
+                                  child: Text('Disable Filter'.tr()),
                                 ),
                               ],
                             ),
@@ -486,8 +481,8 @@ class _ProjectPageState extends State<ProjectPage>
                       ),
                       const Divider(),
                       selectedProjectIdNotifier.value == null
-                          ? const Expanded(
-                              child: Center(child: Text('Select a project')))
+                          ?  Expanded(
+                              child: Center(child: Text('Select a project'.tr())))
                           : ValueListenableBuilder<FilterOption?>(
                               valueListenable: currentFilter,
                               builder: (context, value, child) {
@@ -699,13 +694,13 @@ class _ProjectPageState extends State<ProjectPage>
               Expanded(
                 flex: 5,
                 child: selectedProjectIdNotifier.value == null
-                    ? const Center(
+                    ? Center(
                         child: Text(
-                            'Please select a project to show this content'))
+                            'Please select a project to show this content'.tr()))
                     : selectedApiIndex == -1
-                        ? const Center(
+                        ? Center(
                             child: Text(
-                                'Select an object from list to view details'))
+                                'Select an object from list to view details'.tr()))
                         : ApiDetailPage(api: paths[selectedApiIndex]),
               ),
             ],
@@ -727,18 +722,18 @@ class _ProjectPageState extends State<ProjectPage>
                               child: Padding(
                                 padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
                                 child: ElevatedButton(
-                                  child: const Text('Add Folder'),
+                                  child: Text('Add Folder'.tr()),
                                   onPressed: () {
                                     selectedProjectIdNotifier.value == null
                                         ? ScaffoldMessenger.of(context)
-                                        .showSnackBar(const SnackBar(
+                                        .showSnackBar(SnackBar(
                                         content: Text(
-                                            'Please select a project at first')))
+                                            'Please select a project at first'.tr())))
                                         : isFolderEditing
                                         ? ScaffoldMessenger.of(context)
-                                        .showSnackBar(const SnackBar(
+                                        .showSnackBar(SnackBar(
                                         content: Text(
-                                            'Please finish editing')))
+                                            'Please finish editing'.tr())))
                                         : showDialog(
                                             context: context,
                                             builder: (BuildContext context) {
@@ -747,23 +742,23 @@ class _ProjectPageState extends State<ProjectPage>
 
                                               // Возвращаем AlertDialog
                                               return AlertDialog(
-                                                title: const Text('Add New Folder'),
+                                                title: Text('Add New Folder'.tr()),
                                                 content: TextField(
                                                   controller: nameController,
-                                                  decoration: const InputDecoration(
+                                                  decoration: InputDecoration(
                                                       hintText: "Enter folder name".tr()),
                                                   autofocus: true,
                                                 ),
                                                 actions: <Widget>[
                                                   TextButton(
-                                                    child: const Text('Cancel'),
+                                                    child: Text('Cancel'.tr()),
                                                     onPressed: () {
                                                       Navigator.of(context)
                                                           .pop(); // Закрыть диалог без сохранения
                                                     },
                                                   ),
                                                   TextButton(
-                                                    child: const Text('Add'),
+                                                    child: Text('Add'.tr()),
                                                     onPressed: () async {
                                                       final folderName = nameController
                                                           .text;
@@ -772,19 +767,14 @@ class _ProjectPageState extends State<ProjectPage>
                                                       if (folderName.isEmpty) {
                                                         ScaffoldMessenger.of(context)
                                                             .showSnackBar(
-                                                            const SnackBar(
-                                                              content: Text(
-                                                                  'Folder name cannot be empty'),
-                                                            ));
+                                                            SnackBar(content: Text('Folder name cannot be empty'.tr())));
                                                         // Проверяем, содержится ли уже такое имя в списке
                                                       } else if (testCaseFolders.any((
                                                           folder) =>
                                                       folder.name == folderName)) {
                                                         ScaffoldMessenger.of(context)
                                                             .showSnackBar(
-                                                            const SnackBar(
-                                                              content: Text(
-                                                                  'Folder name needs to be unique'),
+                                                            SnackBar(content: Text('Folder name needs to be unique'.tr()),
                                                             ));
                                                       } else {
                                                         // Добавление новой папки в список
@@ -809,7 +799,7 @@ class _ProjectPageState extends State<ProjectPage>
                                                               context).showSnackBar(
                                                               SnackBar(
                                                                 content: Text(
-                                                                    'Error with adding a folder: $e'),
+                                                                    'Error with adding a folder: '.tr() + e.toString()),
                                                               ));
                                                         }
                                                         Navigator.of(context)
@@ -829,8 +819,8 @@ class _ProjectPageState extends State<ProjectPage>
                         ),
                         const Divider(),
                         selectedProjectIdNotifier.value == null
-                            ? const Expanded(
-                            child: Center(child: Text('Select a project')))
+                            ? Expanded(
+                            child: Center(child: Text('Select a project'.tr())))
                             : ValueListenableBuilder<String?>(
                             valueListenable: selectedProjectIdNotifier,
                             builder: (context, selectedProjectId, child) {
@@ -902,18 +892,18 @@ class _ProjectPageState extends State<ProjectPage>
                               child: Padding(
                                 padding: const EdgeInsets.fromLTRB(0, 8, 8, 0),
                                 child: ElevatedButton(
-                                  child: const Text('Add TestCase'),
+                                  child: Text('Add TestCase'.tr()),
                                   onPressed: () {
                                     selectedProjectIdNotifier.value == null
                                         ? ScaffoldMessenger.of(context)
-                                        .showSnackBar(const SnackBar(
+                                        .showSnackBar(SnackBar(
                                         content: Text(
-                                            'Please select a project at first')))
+                                            'Please select a project at first'.tr())))
                                         : isFolderEditing
                                         ? ScaffoldMessenger.of(context)
-                                        .showSnackBar(const SnackBar(
+                                        .showSnackBar(SnackBar(
                                         content: Text(
-                                            'Please finish editing')))
+                                            'Please finish editing'.tr())))
                                         : showDialog(
                                       context: context,
                                       builder: (BuildContext context) {
@@ -922,23 +912,23 @@ class _ProjectPageState extends State<ProjectPage>
 
                                         // Возвращаем AlertDialog
                                         return AlertDialog(
-                                          title: const Text('Add New TestCase'),
+                                          title: Text('Add New TestCase'.tr()),
                                           content: TextField(
                                             controller: nameController,
-                                            decoration: const InputDecoration(
+                                            decoration: InputDecoration(
                                                 hintText: "Enter testcase name".tr()),
                                             autofocus: true,
                                           ),
                                           actions: <Widget>[
                                             TextButton(
-                                              child: const Text('Cancel'),
+                                              child: Text('Cancel'.tr()),
                                               onPressed: () {
                                                 Navigator.of(context)
                                                     .pop(); // Закрыть диалог без сохранения
                                               },
                                             ),
                                             TextButton(
-                                              child: const Text('Add'),
+                                              child: Text('Add'.tr()),
                                               onPressed: () async {
                                                 final caseName = nameController.text;
 
@@ -946,18 +936,16 @@ class _ProjectPageState extends State<ProjectPage>
                                                 if (caseName.isEmpty) {
                                                   ScaffoldMessenger.of(context)
                                                       .showSnackBar(
-                                                      const SnackBar(
-                                                        content: Text(
-                                                            'TestCase name cannot be empty'),
+                                                      SnackBar(
+                                                        content: Text('TestCase name cannot be empty'.tr()),
                                                       ));
                                                   // Проверяем, содержится ли уже такое имя в списке
                                                 } else if (testCases.any((testcase) =>
                                                 testcase.name == caseName)) {
                                                   ScaffoldMessenger.of(context)
                                                       .showSnackBar(
-                                                      const SnackBar(
-                                                        content: Text(
-                                                            'TestCase name needs to be unique'),
+                                                      SnackBar(
+                                                        content: Text('TestCase name needs to be unique'.tr()),
                                                       ));
                                                 } else {
                                                   // Добавление нового кейса в список
@@ -978,8 +966,7 @@ class _ProjectPageState extends State<ProjectPage>
                                                     ScaffoldMessenger.of(
                                                         context).showSnackBar(
                                                         SnackBar(
-                                                          content: Text(
-                                                              'Error with adding a testcase: $e'),
+                                                          content: Text('Error with adding a testcase: '.tr() + e.toString()),
                                                         ));
                                                   }
                                                   Navigator.of(context).pop(); // Закрыть диалог после сохранения
@@ -998,8 +985,8 @@ class _ProjectPageState extends State<ProjectPage>
                         ),
                         const Divider(),
                         selectedProjectIdNotifier.value == null
-                            ? const Expanded(
-                            child: Center(child: Text('Select a project')))
+                            ? Expanded(
+                            child: Center(child: Text('Select a project'.tr())))
                             : ValueListenableBuilder<int>(
                             valueListenable: selectedTestCaseIndex,
                             builder: (context, selectedProjectId, child) {
@@ -1065,9 +1052,9 @@ class _ProjectPageState extends State<ProjectPage>
                   valueListenable: selectedTestCaseIndex,
                   builder: (context, selectedProjectId, child) {
                     if(selectedProjectIdNotifier.value == null) {
-                      return const Center(child: Text('Please select a project to show this content'));
+                      return Center(child: Text('Please select a project to show this content'.tr()));
                     } else if(selectedTestCaseIndex.value == -1) {
-                      return const Center(child: Text('Select test case from list to view details'));
+                      return Center(child: Text('Select test case from list to view details'.tr()));
                     } else {
 
                       return TestCaseDetailPage(
@@ -1193,21 +1180,21 @@ class _FolderTileState extends State<FolderTile> {
             if (!isFolderEditing) {
               _startEditing();
             } else {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                  content: Text('Finish Rename operation at first')));
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text('Finish Rename operation at first'.tr())));
             }
           } else {
             widget.onDelete();
           }
         },
         itemBuilder: (context) => [
-          const PopupMenuItem(
+          PopupMenuItem(
             value: 'rename',
-            child: Text('Rename Folder'),
+            child: Text('Rename Folder'.tr()),
           ),
-          const PopupMenuItem(
+          PopupMenuItem(
             value: 'delete',
-            child: Text('Delete Folder'),
+            child: Text('Delete Folder'.tr()),
           ),
         ],
       ),
@@ -1330,21 +1317,21 @@ class _CaseTileState extends State<CaseTile> {
             if (!isFolderEditing) {
               _startEditing();
             } else {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                  content: Text('Finish Rename operation at first')));
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text('Finish Rename operation at first'.tr())));
             }
           } else {
             widget.onDelete();
           }
         },
         itemBuilder: (context) => [
-          const PopupMenuItem(
+          PopupMenuItem(
             value: 'rename',
-            child: Text('Rename TestCase'),
+            child: Text('Rename TestCase'.tr()),
           ),
-          const PopupMenuItem(
+          PopupMenuItem(
             value: 'delete',
-            child: Text('Delete TestCase'),
+            child: Text('Delete TestCase'.tr()),
           ),
         ],
       ),

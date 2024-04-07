@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:diplom/main.dart';
 import 'package:diplom/pages/main_navigation_scaffold.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'dart:html' as html;
 
@@ -35,8 +36,9 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
   final FirebaseFirestore fireStore = FirebaseFirestore.instance;
   String _yamlString = '';
   var _docId;
-  String _fileName = ' Import from file';
+  String _fileName = ' Import from file'.tr();
   int? _selectedIconCode = 0xe873;
+  IconData _selectedIconName = Icons.code_off_sharp;
   bool _fileSelected = false;
 
   Future<void> _pickFile() async {
@@ -141,7 +143,7 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
       ApiDestination(
         id: _docId,
         destination: NavigationRailDestination(
-          icon: Icon(IconData(_selectedIconCode!, fontFamily: 'MaterialIcons')),
+          icon: Icon(_selectedIconName),
           label: Text(apiDataInfo['title']),
         ),
       ),
@@ -152,7 +154,7 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Create or import Project'),
+      title: Text('Create or import Project'.tr()),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -169,6 +171,7 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
                 onSelected: (selected) {
                   setState(() {
                     _selectedIconCode = selected?.icon.codePoint; // Сохраняем код выбранной иконки
+                    _selectedIconName = selected!.icon;
                   });
                 },
                 dropdownMenuEntries: IconLabel.values.map<DropdownMenuEntry<IconLabel>>(
@@ -187,7 +190,7 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
                   width: 80,
                   child: TextField(
                     controller: _projectNameController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: 'Project Name'.tr(),
                     ),
                   ),
@@ -223,7 +226,7 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
       actions: <Widget>[
         TextButton(onPressed: () {
           Navigator.of(context).pop();
-        }, child: const Text('Cancel')),
+        }, child: Text('Cancel'.tr())),
         FilledButton.icon(
             onPressed: () async {
               if(_fileSelected) {
@@ -232,11 +235,11 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
                 await loadAndSaveOpenApiSpec();
               }
               else {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a file')));
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Please select a file'.tr())));
               }
             },
             icon: const Icon(Icons.create_new_folder_outlined),
-            label: const Text('Create a project')
+            label: Text('Create a project'.tr())
         ),
       ],
     );

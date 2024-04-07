@@ -1,3 +1,5 @@
+import 'package:easy_localization/easy_localization.dart';
+
 class Validator {
   static String? validateName({required String? name}) {
     if (name == null) {
@@ -5,7 +7,7 @@ class Validator {
     }
 
     if (name.isEmpty) {
-      return 'Name can\'t be empty';
+      return 'Name cant be empty'.tr();
     }
 
     return null;
@@ -20,9 +22,9 @@ class Validator {
         r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,253}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,253}[a-zA-Z0-9])?)*$");
 
     if (email.isEmpty) {
-      return 'Email can\'t be empty';
+      return 'Email cant be empty'.tr();
     } else if (!emailRegExp.hasMatch(email)) {
-      return 'Enter a correct email';
+      return 'Enter a correct email'.tr();
     }
 
     return null;
@@ -34,9 +36,9 @@ class Validator {
     }
 
     if (password.isEmpty) {
-      return 'Password can\'t be empty';
+      return 'Password cant be empty'.tr();
     } else if (password.length < 6) {
-      return 'Enter a password with length at least 6';
+      return 'Enter a password with length at least 6'.tr();
     }
 
     return null;
@@ -48,11 +50,11 @@ class Validator {
     }
 
     if (password.isEmpty) {
-      return 'Password can\'t be empty';
+      return 'Password cant be empty'.tr();
     } else if (password.length < 6) {
-      return 'Enter a password with length at least 6';
+      return 'Enter a password with length at least 6'.tr();
     } else if (password != password2) {
-      return 'Password mismatch. Try again';
+      return 'Password mismatch. Try again'.tr();
     }
     return null;
   }

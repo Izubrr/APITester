@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:diplom/utils/auth.dart';
@@ -30,13 +31,13 @@ class _Forgot_WidgetState extends State<Forgot_Widget> {
     try {
       await FirebaseAuth.instance.sendPasswordResetEmail(
           email: _emailTextController.text.trim());
-      showDialog(
-          context: context,
-          builder: (context) {
-            return AlertDialog(
-              content: Text('Password reset link sent! Check your email'),
-            );
-          });
+          showDialog(
+              context: context,
+              builder: (context) {
+                return AlertDialog(
+                  content: Text('Password reset link sent! Check your email'.tr()),
+                );
+              });
     } on FirebaseAuthException catch (e) {
       showDialog(
           context: context,
@@ -55,9 +56,9 @@ class _Forgot_WidgetState extends State<Forgot_Widget> {
       child: Column(
         mainAxisSize: MainAxisSize.min, // Минимальный размер по высоте
         children: <Widget>[
-          const Text(
-              'Enter your email and we will send you a password reset link',
-              style: TextStyle(color: Color(0xFFE1E1E8)),
+          Text(
+              'Enter your email and we will send you a password reset link'.tr(),
+              style: const TextStyle(color: Color(0xFFE1E1E8)),
               textAlign: TextAlign.center),
           const SizedBox(height: 16),
           TextFormField(
@@ -121,7 +122,7 @@ class _Forgot_WidgetState extends State<Forgot_Widget> {
                     minimumSize: const Size(
                         double.infinity, 36), // Ширина во весь контейнер
                   ),
-                  child: const Text('Reset Password'),
+                  child: Text('Reset Password'.tr()),
                 ),
         ],
       ),

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:diplom/main.dart';
 import 'package:diplom/pages/project_page.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_highlight/flutter_highlight.dart';
 import 'package:flutter_highlight/themes/github.dart';
@@ -226,16 +227,13 @@ class _ApiDetailPageState extends State<ApiDetailPage> {
                                         descriptionController.text;
                                   });
 
-                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Description updated successfully')));
+                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Description updated successfully'.tr())));
                                 } catch (e) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                          content: Text(
-                                              'Error updating description: $e')));
+                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error updating description: '.tr() + e.toString())));
                                 }
                               }
                             },
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               hintText: 'Description'.tr(),
                             ),
                           ),
@@ -278,22 +276,22 @@ class _ApiDetailPageState extends State<ApiDetailPage> {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                         content:
-                                        Text('Error updating status: $e')));
+                                        Text('Error updating status: '.tr() + e.toString())));
                               }
                             }
                           },
-                          items: const [
+                          items: [
                             DropdownMenuItem(
                               value: ApiStatus.notDone,
-                              child: Text('ToDo'),
+                              child: Text('ToDo'.tr()),
                             ),
                             DropdownMenuItem(
                               value: ApiStatus.inProgress,
-                              child: Text('In Progress'),
+                              child: Text('In Progress'.tr()),
                             ),
                             DropdownMenuItem(
                               value: ApiStatus.done,
-                              child: Text('Done'),
+                              child: Text('Done'.tr()),
                             ),
                           ],
                         ),
@@ -308,7 +306,7 @@ class _ApiDetailPageState extends State<ApiDetailPage> {
                   Expanded(
                     child: Card(
                       child: ListTile(
-                        title: const Text('JSON Scheme'),
+                        title: Text('JSON Scheme'.tr()),
                         subtitle: SizedBox(
                           height: 300,
                           child: SingleChildScrollView(
@@ -317,8 +315,7 @@ class _ApiDetailPageState extends State<ApiDetailPage> {
                               child: FutureBuilder<String>(
                                 future: () async {
                                   // Ключ для кэширования, который комбинирует идентификатор проекта и индекс API
-                                  String cacheKey =
-                                      'schema-${selectedProjectIdNotifier.value}-$selectedApiIndex';
+                                  String cacheKey = 'schema-${selectedProjectIdNotifier.value}-$selectedApiIndex';
 
                                   // Проверяем, есть ли данные в кэше для текущего API
                                   String? cachedData = apiDataCache[cacheKey];
@@ -340,8 +337,8 @@ class _ApiDetailPageState extends State<ApiDetailPage> {
                                       ConnectionState.waiting
                                       ? const CircularProgressIndicator()
                                       : !snapshot.hasData
-                                      ? const Text(
-                                      'There is no JSON Scheme')
+                                      ? Text(
+                                      'There is no JSON Scheme'.tr())
                                       : HighlightView(
                                     snapshot.data!,
                                     language: 'json',
@@ -370,11 +367,10 @@ class _ApiDetailPageState extends State<ApiDetailPage> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
-                                  'Fetched TestCases',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 18,
+                                Text(
+                                  'Fetched TestCases'.tr(),
+                                  style: const TextStyle(
+                                    fontSize: 16,
                                   ),
                                 ),
                                 const SizedBox(height: 10),
@@ -443,15 +439,14 @@ class _ApiDetailPageState extends State<ApiDetailPage> {
                       Expanded(
                         child: Card(
                           child: ListTile(
-                            title: const Text('Request Example'),
+                            title: Text('Request Example'.tr()),
                             subtitle: SizedBox(
                               height: 300,
                               child: SingleChildScrollView(
                                 child: FutureBuilder<String>(
                                   future: () async {
                                     // Ключ для кэширования, который комбинирует идентификатор проекта и индекс API
-                                    String cacheKey =
-                                        'requestExample-${selectedProjectIdNotifier.value}-$selectedApiIndex';
+                                    String cacheKey = 'requestExample-${selectedProjectIdNotifier.value}-$selectedApiIndex';
 
                                     // Проверяем, есть ли данные в кэше для текущего API
                                     String? cachedData = apiDataCache[cacheKey];
@@ -473,8 +468,8 @@ class _ApiDetailPageState extends State<ApiDetailPage> {
                                         ConnectionState.waiting
                                         ? const CircularProgressIndicator()
                                         : !snapshot.hasData
-                                        ? const Text(
-                                        'There is no Request Example')
+                                        ? Text(
+                                        'There is no Request Example'.tr())
                                         : HighlightView(
                                             snapshot.data!,
                                             language: 'json',
@@ -500,15 +495,14 @@ class _ApiDetailPageState extends State<ApiDetailPage> {
                               return Card(
                                 child: ListTile(
                                   title:
-                                  const SelectableText('Response Example'),
+                                  SelectableText('Response Example'.tr()),
                                   subtitle: SizedBox(
                                     height: 300,
                                     child: SingleChildScrollView(
                                       child: FutureBuilder<String>(
                                         future: () async {
                                           // Ключ для кэширования, который комбинирует идентификатор проекта и индекс API
-                                          String cacheKey =
-                                              'responseExample-${selectedProjectIdNotifier.value}-$selectedApiIndex-$selectedResponseNotifier.value';
+                                          String cacheKey = 'responseExample-${selectedProjectIdNotifier.value}-$selectedApiIndex-$selectedResponseNotifier.value';
                                           String? cacheResponseCode;
 
                                           // Проверяем, есть ли данные в кэше для текущего API
@@ -521,16 +515,13 @@ class _ApiDetailPageState extends State<ApiDetailPage> {
                                             // Если в кэше нет данных, загружаем их и сохраняем в кэш
                                             Map<String, dynamic> map =
                                             responseCodes[
-                                            paths[selectedApiIndex]
-                                                .pathId];
+                                            paths[selectedApiIndex].pathId];
                                             String newData =
                                             await fetchMapWithRefs(
                                                 map: map[
-                                                selectedResponseNotifier
-                                                    .value]);
+                                                selectedResponseNotifier.value]);
                                             apiDataCache[cacheKey] = newData;
-                                            cacheResponseCode ==
-                                                selectedResponseNotifier.value;
+                                            cacheResponseCode == selectedResponseNotifier.value;
                                             return newData;
                                           }
                                         }(),
@@ -539,8 +530,8 @@ class _ApiDetailPageState extends State<ApiDetailPage> {
                                               ConnectionState.waiting
                                               ? const CircularProgressIndicator()
                                               : !snapshot.hasData
-                                              ? const Text(
-                                              'There is no Response Example')
+                                              ? Text(
+                                              'There is no Response Example'.tr())
                                               : HighlightView(
                                                   snapshot.data!,
                                                   language: 'json',

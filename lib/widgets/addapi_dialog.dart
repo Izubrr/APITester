@@ -1,4 +1,5 @@
 import 'package:diplom/utils/parse_yaml.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:diplom/pages/project_page.dart';
 import 'dart:html' as html;
@@ -47,17 +48,17 @@ class _AddApiDialogState extends State<AddApiDialog> {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Row(
+          Row(
             children: [
               DropdownMenu<ApiMethodType>(
                 width: 100,
                 hintText: 'Method'.tr(),
                 requestFocusOnTap: false,
-                inputDecorationTheme: InputDecorationTheme(
+                inputDecorationTheme: const InputDecorationTheme(
                   //filled: true,
                   contentPadding: EdgeInsets.symmetric(vertical: 5.0),
                 ),
-                dropdownMenuEntries: [
+                dropdownMenuEntries: const [
                   DropdownMenuEntry(value: ApiMethodType.GET, label: 'GET'),
                   DropdownMenuEntry(value: ApiMethodType.POST, label: 'POST'),
                   DropdownMenuEntry(value: ApiMethodType.PUT, label: 'PUT'),

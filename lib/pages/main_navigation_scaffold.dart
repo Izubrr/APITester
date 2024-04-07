@@ -1,12 +1,11 @@
 import 'package:diplom/main.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'project_page.dart';
 import '../widgets/settings_dialog.dart';
 import '../widgets/createproject_dialog.dart';
 import 'package:diplom/widgets/empty_nav_rail.dart';
-
-
 
 class ApiDestination {
   final String id;
@@ -24,11 +23,35 @@ class MainNavigationScaffold extends StatefulWidget {
 
 ValueNotifier<List<ApiDestination>> navRailDestinations = ValueNotifier([]);
 
+IconData? getIconData(int iconCode) {
+  switch (iconCode) {
+    case 0xe04e:
+      return Icons.add_chart;
+    case 0xe08a:
+      return Icons.api;
+    case 0xf03d6:
+      return Icons.browser_updated_sharp;
+    case 0xe115:
+      return Icons.bug_report;
+    case 0xe040:
+      return Icons.account_balance;
+    case 0xe427:
+      return Icons.new_label;
+    case 0xe491:
+      return Icons.person;
+    case 0xe323:
+      return Icons.hourglass_bottom;
+    case 0xe6e6:
+      return Icons.widgets;
+    default:
+      return Icons.code_off_sharp; // Возвращаем null или какой-то дефолтный икон, если iconCode не совпадает ни с одним из случаев
+  }
+}
+
 class _MainNavigationScaffoldState extends State<MainNavigationScaffold> with TickerProviderStateMixin {
   bool _isLoading = true;
 
   Future<List<ApiDestination>> fetchApiTitlesAndIcons() async {
-    print('fetchApiTitlesAndIcons');
     _isLoading = true;
     try {
       final apiCollection = await fireStore.collection('users/${currentUser?.uid}/APIs').get();
@@ -36,10 +59,10 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold> with Ti
         final data = doc.data();
         if (data.containsKey('info') && data['info'] is Map) {
           final title = data['info']['title'] as String? ?? 'No Title';
-          IconData? iconData;
+          //IconData? iconData;
 
           // Проверка и конвертация iconCode в IconData
-          iconData = IconData(data['iconCode'], fontFamily: 'MaterialIcons');
+          //iconData = IconData(data['iconCode'], fontFamily: 'MaterialIcons');
 
           // Создание ApiDestination
           navRailDestinations.value.add(
@@ -47,7 +70,7 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold> with Ti
               id: doc.id,
               destination: NavigationRailDestination(
                 label: contextListener(Text(title), doc.id),
-                icon: contextListener(Icon(iconData), doc.id),
+                icon: contextListener(Icon(getIconData(data['iconCode'])), doc.id),
               ),
             ),
           );
@@ -58,7 +81,7 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold> with Ti
         navRailDestinations;
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error fetching API titles and icons: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error fetching API titles and icons: '.tr() + e.toString())));
     }
     return navRailDestinations.value;
   }
@@ -147,7 +170,7 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold> with Ti
               );
             },
           ),
-          Expanded(child: currentUser!.emailVerified ? ProjectPage(selectedProjectId: selectedProjectIdNotifier.value) : Center(child: Text('Verify Email to use App',  style: Theme.of(context).textTheme.displayMedium),)),
+          Expanded(child: currentUser!.emailVerified ? ProjectPage(selectedProjectId: selectedProjectIdNotifier.value) : Center(child: Text('Verify Email to use App'.tr(),  style: Theme.of(context).textTheme.displayMedium),)),
         ],
       ),
     );
@@ -163,13 +186,13 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold> with Ti
             context: context,
             position: RelativeRect.fromLTRB(position.dx, position.dy, position.dx, position.dy),
             items: [
-              const PopupMenuItem<String>(
+              PopupMenuItem<String>(
                 value: 'rename',
-                child: Text('Rename'),
+                child: Text('Rename'.tr()),
               ),
-              const PopupMenuItem<String>(
+              PopupMenuItem<String>(
                 value: 'delete',
-                child: Text('Delete'),
+                child: Text('Delete'.tr()),
               ),
             ],
           );
@@ -185,36 +208,36 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold> with Ti
 
                     // Возвращаем AlertDialog
                     return AlertDialog(
-                      title: const Text('Rename Project'),
+                      title: Text('Rename Project'.tr()),
                       content: TextField(
                         controller: nameController,
-                        decoration: const InputDecoration(hintText: "Enter project name"),
+                        decoration: InputDecoration(hintText: "Enter project name".tr()),
                         autofocus: true,
                       ),
                       actions: <Widget>[
                         TextButton(
-                          child: const Text('Cancel'),
+                          child: Text('Cancel'.tr()),
                           onPressed: () {
                             Navigator.of(context).pop(); // Закрыть диалог без сохранения
                           },
                         ),
                         TextButton(
-                          child: const Text('Rename'),
+                          child: Text('Rename'.tr()),
                           onPressed: () async {
                             final projectName = nameController.text;
 
                             // Проверяем, пустое ли имя
                             if (projectName.isEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Project name cannot be empty'),
+                                SnackBar(
+                                  content: Text('Project name cannot be empty'.tr()),
                                 ),
                               );
                               // Проверяем, содержится ли уже такое имя в списке
                             } else if (testCaseFolders.any((folder) => folder.name == projectName)) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Project name needs to be unique'),
+                                SnackBar(
+                                  content: Text('Project name needs to be unique'.tr()),
                                 ),
                               );
                             } else {
@@ -241,7 +264,7 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold> with Ti
                               } catch (e) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text('Error with renaming: $e'),
+                                    content: Text('Error with renaming: '.tr() + e.toString()),
                                   ),
                                 );
                               }

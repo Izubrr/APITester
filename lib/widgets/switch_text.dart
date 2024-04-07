@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 class SwitchText extends StatefulWidget {
@@ -41,7 +42,7 @@ class _SwitchTextState extends State<SwitchText> {
                       color: val ? Colors.white : widget.color),
                   child: Center(
                       child: Text(
-                    'Log in',
+                    'Login'.tr(),
                     style: TextStyle(
                         fontWeight: FontWeight.bold,
                         color: val ? Colors.black : Colors.white),
@@ -57,7 +58,7 @@ class _SwitchTextState extends State<SwitchText> {
                       color: val ? widget.color : Colors.white),
                   child: Center(
                       child: Text(
-                    'Sign up',
+                    'Sign up'.tr(),
                     style: TextStyle(
                         fontWeight: FontWeight.bold,
                         color: val ? Colors.white : Colors.black),

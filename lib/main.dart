@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:diplom/pages/login_page.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:universal_html/html.dart' as html;
+
 
 final ValueNotifier<Color> mainThemeColorNotifier = ValueNotifier<Color>(Colors.green);
 final ValueNotifier<bool> isDarkThemeNotifier = ValueNotifier(true);
@@ -21,20 +23,23 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await EasyLocalization.ensureInitialized();
 
+  final browserLanguage = html.window.navigator.language;
+  final fallbackLocale = Locale.fromSubtags(languageCode: browserLanguage.split('-').first, countryCode: browserLanguage.split('-').last.toUpperCase());
+
   SharedPreferences prefs = await SharedPreferences.getInstance();
 
   Locale? savedLocale;
   String? savedLanguageCode = prefs.getString('languageCode');
   String? savedCountryCode = prefs.getString('countryCode');
   if (savedLanguageCode != null) {
-    savedLocale = Locale(savedLanguageCode, savedCountryCode);
+    savedLocale = Locale(savedLanguageCode, savedCountryCode ?? savedLanguageCode.toUpperCase());
   }
 
   runApp(
     EasyLocalization(
       supportedLocales: const [Locale('en', 'US'), Locale('ru', 'RU')],
-      path: 'lib/assets/translations',
-      fallbackLocale: const Locale('en', 'US'),
+      path: 'assets/translations',
+      fallbackLocale: fallbackLocale ,
       startLocale: savedLocale, // Установка сохраненной локали как начальной
       child: MyApp(),
     ),
@@ -74,7 +79,7 @@ class MyApp extends StatelessWidget {
 }
 
 
-Future<void> saveLocale(Locale locale) async {
+Future<void> saveLanguage(Locale locale) async {
   final prefs = await SharedPreferences.getInstance();
   await prefs.setString('languageCode', locale.languageCode);
   if (locale.countryCode != null) {
