@@ -1,5 +1,6 @@
 import 'package:diplom/widgets/createproject_dialog.dart';
 import 'package:diplom/widgets/settings_dialog.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 import '../main.dart';
@@ -21,12 +22,16 @@ class EmptyNavigationRail extends StatelessWidget {
             padding: const EdgeInsets.all(8.0),
             child: FloatingActionButton(
               onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (BuildContext context) {
-                    return CreateProjectDialog(); // Диалог создания проекта
-                  },
-                );
+                if (currentUser!.emailVerified) {
+                  showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return CreateProjectDialog();
+                    },
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Verify Your Email'.tr())));
+                }
               },
               child: const Icon(Icons.add),
             ),

@@ -119,9 +119,10 @@
   "Verification Status: ": "Verification Status: ",
   "verification_status_done": "Verification Status: done - Now refresh this page",
   "verification_status_not_done": "Verification Status: not done",
-  "Update": "Update",
+  "Send link": "Send link",
   "Your Email is verified": "Your Email is verified",
   "delete_account_confirm": "Are you sure you want to delete your account? This action cannot be undone.",
   "Error deleting account: ": "Error deleting account: ",
-  "Sign up": "Sign up"
+  "Sign up": "Sign up",
+  "Your email: ": "Your email: "
 }

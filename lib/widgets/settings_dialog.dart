@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:diplom/pages/login_page.dart';
 import 'package:diplom/utils/auth.dart';
@@ -334,7 +336,6 @@ class _SettingsDialogState extends State<SettingsDialog> {
                       const SizedBox(width: 2,),
                       FilledButton(
                         onPressed: !currentUser!.emailVerified ? () async {
-                          currentUser?.sendEmailVerification();
                           verifyEmail();
                         } : null,
                         child: Text('Verify email'.tr())
@@ -362,57 +363,60 @@ class _SettingsDialogState extends State<SettingsDialog> {
     );
   }
 
+  Timer? _resendTimer;
+  int _resendTimeout = 0; // Начальное значение таймаута
+
   void verifyEmail() async {
-    // Используйте Builder для получения правильного контекста
+    int localResendTimeout = _resendTimeout; // Локальная копия для использования в диалоге
+    bool localIsVerifyLoading = _isVerifyLoading; // Локальная копия состояния загрузки
+
+    _isVerifyLoading = true;
     await showDialog(
       context: context,
-      builder: (BuildContext dialogContext) => AlertDialog(
-        title: Text('Verify Your Email'.tr()),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('verification_link_has_been_sent'.tr()),
-            Card(
-              child: ListTile(
-                leading: isEmailVerified ? const Icon( Icons.check, color: Colors.green,) : const Icon(Icons.close),
-                title: Text(isEmailVerified ? 'verification_status_done'.tr() : 'verification_status_not_done'.tr()),
-              ),
-            ),
-          ],
-        ),
-        actions: <Widget>[
-          TextButton(
-            child: Text('Close'.tr()),
-            onPressed: () {
-              Navigator.of(dialogContext).pop(); // Закрывает диалоговое окно, используя dialogContext
-            },
-          ),
-          if (!isEmailVerified) ...[
-            _isVerifyLoading
-                ? const CircularProgressIndicator()
-                : FilledButton.icon(
-                    icon: const Icon(Icons.refresh),
-                    label: Text('Update'.tr()),
-                    onPressed: () async {
-                      setState(() => _isVerifyLoading = true);
-                      await Auth.refreshUser(currentUser!);
-                      // Обновите информацию о пользователе, чтобы проверить, верифицирован ли email
-                      await currentUser!.reload();
-                      if (currentUser!.emailVerified) {
-                        setState(() {
-                          isEmailVerified = true;
-                          _isVerifyLoading = false;
-                        });
-                      } else {
-                        setState(() => _isVerifyLoading = false);
-                      }
-                    },
-                  ),
-          ] else ...[
-            Text('Your Email is verified'.tr()),
-          ],
-        ],
-      ),
+      builder: (BuildContext dialogContext) {
+          return StatefulBuilder(
+            builder: (BuildContext context, StateSetter setDialogState) {
+              void startResendTimer() {
+                localResendTimeout = 60; // Задаем начальное время таймера
+                _resendTimer?.cancel(); // Отменяем текущий таймер, если он активен
+
+                _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+                  if (localResendTimeout <= 0) {
+                    timer.cancel();
+                  } else {
+                    setDialogState(() {
+                      localResendTimeout--;
+                    });
+                  }
+                });
+              }
+
+              return AlertDialog(
+              title: Text('Verify Your Email'.tr()),
+              content: Text('Your email: '.tr() + currentUser!.email.toString()),
+              actions: <Widget>[
+                TextButton(
+                  child: Text('Close'.tr()),
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop(); // Закрывает диалоговое окно, используя dialogContext
+                  },
+                ),
+                FilledButton.icon(
+                  icon: const Icon(Icons.refresh),
+                  label: localResendTimeout > 0 ? Text('Send link'.tr() + ' ($localResendTimeout)') : Text('Send link'.tr()),
+                  onPressed: !localIsVerifyLoading && localResendTimeout <= 0 ?  () async {
+                    setDialogState(() => localIsVerifyLoading = true);
+                    // Обновите информацию о пользователе, чтобы проверить, верифицирован ли email
+                    await currentUser?.sendEmailVerification();
+                    setDialogState(() => localIsVerifyLoading = false);
+                    startResendTimer(); // Запускаем таймер повторно
+                  } : null,
+                ),
+              ],
+             );
+            }
+          );
+      },
     );
   }
 
@@ -468,4 +472,11 @@ class _SettingsDialogState extends State<SettingsDialog> {
       }
     }
   }
+
+  @override
+  void dispose() {
+    _resendTimer?.cancel();
+    super.dispose();
+  }
+
 }
