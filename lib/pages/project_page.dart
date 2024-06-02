@@ -1074,8 +1074,8 @@ class _ProjectPageState extends State<ProjectPage>
                     } else {
 
                       return TestCaseDetailPage(
-                        key: ValueKey(testCases[selectedTestCaseIndex.value].docId),
-                        testCase: testCases[selectedTestCaseIndex.value],
+                        //key: ValueKey(testCases[selectedTestCaseIndex.value].docId),
+                        testCase: testCaseFolders[selectedTestFolderIndex].testCases[selectedTestCaseIndex.value],
                       );
                     }
                   }
