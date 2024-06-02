@@ -124,5 +124,6 @@
   "delete_account_confirm": "Are you sure you want to delete your account? This action cannot be undone.",
   "Error deleting account: ": "Error deleting account: ",
   "Sign up": "Sign up",
-  "Your email: ": "Your email: "
+  "Your email: ": "Your email: ",
+  "After verification reload this page": "After verification reload this page"
 }

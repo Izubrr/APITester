@@ -124,5 +124,6 @@
   "delete_account_confirm": "Вы уверены, что хотите удалить ваш аккаунт? Это действие нельзя отменить.",
   "Error deleting account: ": "Ошибка при удалении аккаунта: ",
   "Sign up": "Регистрация",
-  "Your email: ": "Ваша почта: "
+  "Your email: ": "Ваша почта: ",
+  "After verification reload this page": "После верификации обновите эту страницу"
 }

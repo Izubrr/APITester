@@ -393,7 +393,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
 
               return AlertDialog(
               title: Text('Verify Your Email'.tr()),
-              content: Text('Your email: '.tr() + currentUser!.email.toString()),
+              content: Text('Your email: '.tr() + currentUser!.email.toString() + '\n' + 'After verification reload this page'.tr()),
               actions: <Widget>[
                 TextButton(
                   child: Text('Close'.tr()),
@@ -404,10 +404,11 @@ class _SettingsDialogState extends State<SettingsDialog> {
                 FilledButton.icon(
                   icon: const Icon(Icons.refresh),
                   label: localResendTimeout > 0 ? Text('Send link'.tr() + ' ($localResendTimeout)') : Text('Send link'.tr()),
-                  onPressed: !localIsVerifyLoading && localResendTimeout <= 0 ?  () async {
+                  onPressed: !localIsVerifyLoading && localResendTimeout <= 0 && !currentUser!.emailVerified ?  () async {
                     setDialogState(() => localIsVerifyLoading = true);
                     // Обновите информацию о пользователе, чтобы проверить, верифицирован ли email
-                    await currentUser?.sendEmailVerification();
+                    currentUser?.sendEmailVerification();
+                    print('emailVerified' + currentUser!.emailVerified.toString());
                     setDialogState(() => localIsVerifyLoading = false);
                     startResendTimer(); // Запускаем таймер повторно
                   } : null,
@@ -419,10 +420,10 @@ class _SettingsDialogState extends State<SettingsDialog> {
       },
     );
   }
+  
 
 
   void deleteAccount() async {
-    // Показываем диалоговое окно для подтверждения удаления
     final bool? confirmDelete = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) => AlertDialog(
@@ -436,7 +437,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: TextButton.styleFrom(
-              foregroundColor: Colors.red, // Make delete text red to indicate a destructive action
+              foregroundColor: Colors.red,
             ),
             child: Text('Delete'.tr()),
           ),
@@ -444,32 +445,34 @@ class _SettingsDialogState extends State<SettingsDialog> {
       ),
     );
 
-    // Если пользователь подтвердил удаление
     if (confirmDelete == true) {
-      try {
-        // Удаляем документ пользователя из Firestore
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(currentUser?.uid)
-            .delete();
+      // Удаляем все документы пользователя
+      print('users/${currentUser?.uid}');
+      //await fireStore.collection('users').doc(currentUser?.uid).delete();
 
-        // Удаляем аккаунт пользователя
-        await FirebaseAuth.instance.currentUser?.delete();
-        // Переходим на страницу входа после удаления аккаунта
+      final documentReferenceToDelete = fireStore.collection('users').doc(currentUser?.uid);
 
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => LoginPage(),
-          ),
-        );
-        setState(() {
-          currentUser = null;
-        });
-        selectedProjectIdNotifier.value = '-1';
-        navRailDestinations.value = [];
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error deleting account: '.tr() + e.toString())));
-      }
+      await fireStore.runTransaction((transaction) async {
+        await transaction.delete(documentReferenceToDelete);
+      });
+
+
+      // Удаляем аккаунт пользователя из FirebaseAuth
+      //await FirebaseAuth.instance.currentUser?.delete();
+
+      // Переходим на страницу входа
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => LoginPage(),
+        ),
+      );
+
+      // Сбрасываем состояние приложения
+      setState(() {
+        currentUser = null;
+      });
+      selectedProjectIdNotifier.value = '-1';
+      navRailDestinations.value = [];
     }
   }
 

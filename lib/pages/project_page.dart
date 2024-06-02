@@ -217,10 +217,12 @@ class _ProjectPageState extends State<ProjectPage>
       projectName = apiData['info']['title'];
     }
 
-    final testcasefolders = await apiRef.collection('testcasefolders').get();
-    for (var folderDoc in testcasefolders.docs) {
+    final tempTestCaseFolders = await apiRef.collection('testcasefolders').get();
+    for (var folderDoc in tempTestCaseFolders.docs) {
       final folderData = folderDoc.data();
       final cases = await apiRef.collection('testcasefolders/${folderDoc.id}/testcases').get();
+
+      List<TestCase> tempTestCases = [];
 
       // Если подколлекция существует и содержит документы, заполняем список testCases
       if (cases.docs.isNotEmpty) {
@@ -236,13 +238,22 @@ class _ProjectPageState extends State<ProjectPage>
                 docId: caseDoc.id,
               )
           );
+          tempTestCases.add(
+              TestCase(
+                name: caseData['name'],
+                url: caseData['url'] ?? '',
+                description: caseData['description'] ?? '',
+                fetchedApisID: fetches,
+                docId: caseDoc.id,
+              )
+          );
         }
       }
       testCaseFolders.add(
           Folder(
             name: folderData['title'],
             docId: folderDoc.id,
-            testCases: testCases,
+            testCases: tempTestCases,
           )
       );
     }
@@ -784,9 +795,7 @@ class _ProjectPageState extends State<ProjectPage>
                                                               'users/${currentUser
                                                                   ?.uid}/APIs/${selectedProjectIdNotifier
                                                                   .value}/testcasefolders')
-                                                              .add({
-                                                            'title': folderName
-                                                          });
+                                                              .add({'title': folderName});
                                                           setState(() {
                                                             testCaseFolders.add(
                                                                 Folder(
@@ -950,24 +959,31 @@ class _ProjectPageState extends State<ProjectPage>
                                                 } else {
                                                   // Добавление нового кейса в список
                                                   try {
+                                                    print('Path: users/${currentUser?.uid}/APIs/${selectedProjectIdNotifier.value}/testcasefolders/${testCaseFolders[selectedTestFolderIndex].docId}/testcases');
                                                     final docRef = await fireStore
                                                         .collection(
                                                         'users/${currentUser?.uid}/APIs/${selectedProjectIdNotifier.value}/testcasefolders/${testCaseFolders[selectedTestFolderIndex].docId}/testcases')
-                                                        .add({
-                                                          'name': caseName
-                                                        });
+                                                        .add({'name': caseName});
+
                                                     setState(() {
                                                       testCaseFolders[selectedTestFolderIndex].testCases.add(
                                                           TestCase(
                                                               name: caseName,
                                                               docId: docRef.id));
                                                     });
+                                                    print(testCaseFolders[selectedTestFolderIndex].testCases);
+                                                    print(testCaseFolders.length);
+                                                    print(selectedTestFolderIndex);
                                                   } catch (e) {
                                                     ScaffoldMessenger.of(
                                                         context).showSnackBar(
                                                         SnackBar(
                                                           content: Text('Error with adding a testcase: '.tr() + e.toString()),
                                                         ));
+                                                    print(testCaseFolders[selectedTestFolderIndex].testCases);
+                                                    print(testCaseFolders.length);
+                                                    print(selectedTestFolderIndex);
+                                                    print(e.toString());
                                                   }
                                                   Navigator.of(context).pop(); // Закрыть диалог после сохранения
                                                 }
@@ -1078,7 +1094,8 @@ class Folder {
   final String docId; // Идентификатор документа в Firestore
   List<TestCase> testCases;
 
-  Folder({required this.name, required this.docId, this.testCases = const []});
+  Folder({required this.name, required this.docId, List<TestCase>? testCases})
+      : testCases = testCases ?? [];
 }
 
 class FolderTile extends StatefulWidget {
